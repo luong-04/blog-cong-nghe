@@ -16,6 +16,15 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
                 </div>
+                <!-- Link Quản lý Danh mục -->
+                <x-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
+                    {{ __('Quản lý Danh mục') }}
+                </x-nav-link>
+
+                <!-- Link Quản lý Bài viết (Mới thêm) -->
+                <x-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
+                    {{ __('Quản lý Bài viết') }}
+                </x-nav-link>
             </div>
 
             <!-- Settings Dropdown -->
@@ -95,6 +104,15 @@
                     </x-responsive-nav-link>
                 </form>
             </div>
+            <!-- Link Quản lý Danh mục (Mobile) -->
+            <x-responsive-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
+                {{ __('Quản lý Danh mục') }}
+            </x-responsive-nav-link>
+
+            <!-- Link Quản lý Bài viết (Mobile) -->
+            <x-responsive-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
+                {{ __('Quản lý Bài viết') }}
+            </x-responsive-nav-link>
         </div>
     </div>
 </nav>

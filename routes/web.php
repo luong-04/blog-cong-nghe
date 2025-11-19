@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\CategoryController; // Import CategoryController
+use App\Http\Controllers\Admin\PostController;     // [MỚI] Import PostController
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -17,10 +19,15 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-use App\Http\Controllers\Admin\CategoryController;
-
+// --- NHÓM ROUTE ADMIN ---
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+    
+    // Route quản lý Danh mục
     Route::resource('categories', CategoryController::class);
+
+    // [MỚI] Route quản lý Bài viết
+    Route::resource('posts', PostController::class);
+
 });
 
 require __DIR__.'/auth.php';
