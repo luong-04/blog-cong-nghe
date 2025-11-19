@@ -27,7 +27,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // [MỚI] Route quản lý Bài viết
     Route::resource('posts', PostController::class);
-
+    //xử lý AI
+    Route::post('posts/generate-content', [PostController::class, 'generateContent'])->name('posts.generate');
 });
 
 require __DIR__.'/auth.php';

@@ -20,11 +20,65 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tiêu đề bài viết</label>
                                 <input type="text" name="title" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-white" required>
                             </div>
-                            
+                            {{-- Nút tạo AI --}}
+                            <div class="flex justify-end">
+                                <button type="button" id="btn-generate" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow text-sm flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    Viết nội dung bằng Gemini AI
+                                </button>
+                            </div>
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nội dung</label>
                                 <textarea name="content" rows="10" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-white"></textarea>
                             </div>
+                            {{--Script xử lý Ajax --}}
+                            <script>
+                                document.getElementById('btn-generate').addEventListener('click', function() {
+                                    const title = document.getElementById('post-title').value;
+                                    const btn = this;
+                                    const contentArea = document.getElementById('post-content');
+
+                                    if (!title) {
+                                        alert('Vui lòng nhập tiêu đề trước để AI biết cần viết gì!');
+                                        return;
+                                    }
+
+                                    // Hiệu ứng đang tải
+                                    btn.disabled = true;
+                                    btn.innerHTML = 'Đang suy nghĩ...';
+                                    btn.classList.add('opacity-50');
+
+                                    fetch('{{ route('admin.posts.generate') }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                        },
+                                        body: JSON.stringify({ title: title })
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.content) {
+                                            contentArea.value = data.content;
+                                        } else {
+                                            alert('Lỗi: ' + (data.error || 'Không có phản hồi'));
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error:', error);
+                                        alert('Có lỗi xảy ra khi kết nối tới server.');
+                                    })
+                                    .finally(() => {
+                                        // Khôi phục nút
+                                        btn.disabled = false;
+                                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Viết nội dung bằng Gemini AI';
+                                        btn.classList.remove('opacity-50');
+                                    });
+                                });
+                            </script>
                         </div>
 
                         {{-- Cột bên phải: Cài đặt --}}

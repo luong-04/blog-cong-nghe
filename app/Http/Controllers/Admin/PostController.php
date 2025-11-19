@@ -9,6 +9,7 @@ use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class PostController extends Controller
 {
@@ -73,6 +74,41 @@ class PostController extends Controller
                          ->with('success', 'Đăng bài thành công!');
     }
 
+    //AI tạo bài viết
+    public function generateContent(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string',
+        ]);
+
+        $apiKey = env('GEMINI_API_KEY');
+        $title = $request->title;
+        
+        // Prompt gửi cho AI
+        $prompt = "Viết một bài blog công nghệ chi tiết, chuẩn SEO, có các thẻ heading (h2, h3) định dạng Markdown về chủ đề: " . $title;
+
+        // Gọi API Gemini (Sử dụng model gemini-1.5-flash cho nhanh và rẻ)
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt]
+                    ]
+                ]
+            ]
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            // Lấy text từ phản hồi của Gemini
+            $generatedText = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Không thể tạo nội dung.';
+            return response()->json(['content' => $generatedText]);
+        }
+
+        return response()->json(['error' => 'Lỗi khi gọi Gemini API'], 500);
+    }
     /**
      * Hiển thị form chỉnh sửa
      */
