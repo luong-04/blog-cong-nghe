@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Http;
 
 // --- PUBLIC ROUTES ---
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/danh-muc/{slug}', [HomeController::class, 'category'])->name('categories.show');
 Route::get('/bai-viet/{slug}', [HomeController::class, 'show'])->name('posts.show');
 Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
 
