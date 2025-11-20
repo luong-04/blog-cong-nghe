@@ -10,25 +10,66 @@
 <body class="bg-gray-100 font-sans antialiased">
 
     {{-- Header --}}
-    <nav class="bg-white shadow mb-8">
+    <nav class="bg-white shadow mb-8 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
                     {{-- Logo --}}
-                    <a href="/" class="text-2xl font-bold text-indigo-600">TechBlog 🚀</a>
+                    <a href="/" class="text-2xl font-bold text-indigo-600 flex items-center gap-2">
+                        <span>🚀</span> TechBlog
+                    </a>
                 </div>
+                
                 <div class="flex items-center space-x-4">
                     @auth
-                        <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-indigo-600 font-medium">Dashboard</a>
+                        {{-- 1. Nếu là Admin hoặc Author thì mới hiện nút Dashboard --}}
+                        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'author')
+                            <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-indigo-600 font-medium bg-indigo-50 px-3 py-2 rounded-lg transition">
+                                📊 Dashboard
+                            </a>
+                        @endif
+
+                        {{-- 2. Menu User (Hiển thị cho TẤT CẢ ai đã đăng nhập) --}}
+                        <div class="relative group ml-4">
+                            {{-- Thêm py-2 để mở rộng vùng hover của nút --}}
+                            <button class="flex items-center gap-1 text-gray-700 font-medium hover:text-indigo-600 focus:outline-none py-2">
+                                <span>👤 {{ Auth::user()->name }}</span>
+                                <svg class="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            
+                            {{-- Dropdown Menu (Đã sửa lỗi Hover) --}}
+                            {{-- 1. top-full: Bắt đầu ngay dưới nút --}}
+                            {{-- 2. pt-3: Tạo lớp đệm trong suốt 12px ở bên trên để làm "cầu nối" --}}
+                            <div class="absolute right-0 top-full w-48 pt-3 hidden group-hover:block z-50">
+                                {{-- 3. Nội dung chính nằm trong khối này, có nền trắng và bóng đổ --}}
+                                <div class="bg-white rounded-md shadow-xl py-1 border border-gray-100 overflow-hidden">
+                                    {{-- Link vào trang hồ sơ --}}
+                                    <a href="{{ route('profile.edit') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 transition border-b border-gray-50">
+                                        ⚙️ Hồ sơ cá nhân
+                                    </a>
+                                    
+                                    {{-- Nút đăng xuất --}}
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition">
+                                            🚪 Đăng xuất
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
                     @else
+                        {{-- Khách chưa đăng nhập --}}
                         <a href="{{ route('login') }}" class="text-gray-700 hover:text-indigo-600 font-medium">Đăng nhập</a>
-                        <a href="{{ route('register') }}" class="text-gray-700 hover:text-indigo-600 font-medium">Đăng ký</a>
+                        <a href="{{ route('register') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition font-medium shadow-md">Đăng ký</a>
                     @endauth
                 </div>
             </div>
         </div>
     </nav>
-
     {{-- Main Content --}}
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         

@@ -8,7 +8,7 @@
                     </a>
                 </div>
 
-                <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     {{-- 1. Link Trang chủ (Ai cũng thấy) --}}
                     <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
                         {{ __('Trang chủ') }}
@@ -28,6 +28,7 @@
                             {{ __('QL Bài viết') }}
                         </x-nav-link>
                         
+                        {{-- Chỉ Admin mới thấy quản lý User --}}
                         @if(Auth::user()->role === 'admin')
                              <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                                 {{ __('QL Thành viên') }}
@@ -41,7 +42,7 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div> {{-- Hiện tên user --}}
+                            <div>{{ Auth::user()->name }}</div>
 
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -52,6 +53,7 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        {{-- Link vào trang Hồ sơ (Nơi có nút xin làm tác giả) --}}
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Hồ sơ cá nhân') }}
                         </x-dropdown-link>
@@ -85,9 +87,13 @@
                 {{ __('Trang chủ') }}
             </x-responsive-nav-link>
             
+            {{-- Menu Mobile cũng phải check quyền --}}
             @if(Auth::user()->role === 'admin' || Auth::user()->role === 'author')
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
+                    {{ __('QL Danh mục') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
                     {{ __('QL Bài viết') }}
