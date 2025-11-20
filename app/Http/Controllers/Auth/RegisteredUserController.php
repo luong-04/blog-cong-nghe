@@ -45,6 +45,12 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // Nếu là admin hoặc author thì vào Dashboard
+        if ($user->role === 'admin' || $user->role === 'author') {
+            return redirect()->route('dashboard');
+        }
+
+        // Nếu là user thường, về trang chủ
+        return redirect()->route('home');
     }
 }

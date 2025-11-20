@@ -62,22 +62,29 @@
                                     .then(response => response.json())
                                     .then(data => {
                                         if (data.content) {
-                                            contentArea.value = data.content;
-                                        } else {
-                                            alert('Lỗi: ' + (data.error || 'Không có phản hồi'));
+                                            // Điền nội dung HTML
+                                            contentArea.value = data.content; // Nếu dùng CKEditor thì phải dùng lệnh khác
+                                            
+                                            // [MỚI] Xử lý ảnh AI
+                                            if (data.image_url) {
+                                                // Tạo một input hidden hoặc hiển thị ảnh demo
+                                                // Giả sử bạn muốn hiện ảnh ra để xem trước
+                                                let imgPreview = document.getElementById('ai-image-preview');
+                                                if (!imgPreview) {
+                                                    // Nếu chưa có thẻ img thì tạo mới chèn vào dưới ô upload
+                                                    imgPreview = document.createElement('img');
+                                                    imgPreview.id = 'ai-image-preview';
+                                                    imgPreview.className = 'mt-4 rounded-lg shadow w-full max-w-md';
+                                                    document.querySelector('input[name="featured_image"]').parentNode.appendChild(imgPreview);
+                                                }
+                                                imgPreview.src = data.image_url;
+                                                
+                                                // Tạm thời: Bạn có thể lưu URL này vào một input hidden để Controller tải về sau
+                                                // Hoặc hướng dẫn user: "Tải ảnh này về rồi up lên" (Cách đơn giản nhất)
+                                                alert('Đã viết bài và tạo ảnh xong! Bạn có thể tải ảnh demo về máy để upload.');
+                                            }
                                         }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error:', error);
-                                        alert('Có lỗi xảy ra khi kết nối tới server.');
-                                    })
-                                    .finally(() => {
-                                        // Khôi phục nút
-                                        btn.disabled = false;
-                                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Viết nội dung bằng Gemini AI';
-                                        btn.classList.remove('opacity-50');
                                     });
-                                });
                             </script>
                         </div>
 

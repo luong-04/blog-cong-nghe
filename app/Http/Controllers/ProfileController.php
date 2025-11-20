@@ -57,4 +57,13 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+    public function requestAuthor(Request $request)
+    {
+        $user = $request->user();
+        if ($user->role === 'user') {
+            $user->role = 'pending'; // Chuyển trạng thái thành chờ duyệt
+            $user->save();
+        }
+        return back()->with('status', 'Đã gửi yêu cầu! Vui lòng chờ duyệt.');
+    }
 }

@@ -16,6 +16,20 @@
                 </div>
                 {{-- Bạn có thể thêm box thống kê Category, User tại đây --}}
             </div>
+            {{-- -đăng ký tác giả --}}
+            <div class="p-6 text-gray-900 dark:text-gray-100">
+                @if(auth()->user()->role === 'user')
+                    <p>Bạn đang là thành viên thường. Bạn muốn đăng bài?</p>
+                    <form action="{{ route('profile.request-author') }}" method="POST" class="mt-4">
+                        @csrf
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Đăng ký làm Tác giả</button>
+                    </form>
+                @elseif(auth()->user()->role === 'pending')
+                    <div class="bg-yellow-100 p-4 text-yellow-800 rounded">
+                        Yêu cầu của bạn đang chờ Admin duyệt.
+                    </div>
+                @endif
+            </div>
 
             {{-- Danh sách bài mới --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">

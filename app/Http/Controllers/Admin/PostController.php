@@ -66,38 +66,58 @@ class PostController extends Controller
 
         if (!$apiKey) return response()->json(['error' => 'Thiếu API Key'], 500);
 
-        // [QUAN TRỌNG] Dùng model 'gemini-2.0-flash' vì nó CÓ trong danh sách của bạn
+        // Model 2.0-flash mà bạn đã kiểm tra có trong danh sách
         $model = 'gemini-2.0-flash';
         
-        $prompt = "Viết bài blog công nghệ chi tiết, chuẩn SEO, định dạng Markdown về chủ đề: " . $request->title;
+        $prompt = "Viết bài blog công nghệ chi tiết, chuẩn SEO, định dạng Markdown (thẻ h2, h3, bullet points) về chủ đề: " . $request->title;
 
         try {
-            $response = Http::withoutVerifying()
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => $prompt]
-                            ]
+            // Cấu hình gửi đi
+            $payload = [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
                         ]
                     ]
-                ]);
+                ],
+                // [QUAN TRỌNG] Tắt bộ lọc an toàn để tránh bị trả về rỗng
+                'safetySettings' => [
+                    ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
+                    ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
+                ]
+            ];
+
+            // [QUAN TRỌNG] Thêm timeout(60) để chờ AI viết bài dài (mặc định chỉ 30s là bị ngắt)
+            $response = Http::withoutVerifying()
+                ->timeout(60) 
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
                 $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                return response()->json(['content' => $text]);
+                
+                if ($text) {
+                    return response()->json(['content' => $text]);
+                }
+                
+                // Nếu không có text, trả về lý do chi tiết
+                return response()->json([
+                    'error' => 'AI trả về rỗng (Có thể do Safety Filter).',
+                    'raw_data' => $data
+                ], 500);
             }
 
             return response()->json([
                 'error' => 'Lỗi Google (' . $response->status() . ')',
-                'model_used' => $model,
                 'details' => $response->json()
             ], 500);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Lỗi Server: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Lỗi Server/Mạng: ' . $e->getMessage()], 500);
         }
     }
 
