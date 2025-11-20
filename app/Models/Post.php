@@ -42,8 +42,9 @@ class Post extends Model
     }
 
     // Quan hệ: Bài viết có nhiều Bình luận
-    public function comments(): HasMany
+
+    public function comments()
     {
-        return $this->hasMany(Comment::class);
+        return $this->hasMany(Comment::class)->where('status', 'approved')->latest();
     }
 }

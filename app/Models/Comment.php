@@ -8,23 +8,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Comment extends Model
 {
-    use HasFactory;
-
+    // Khai báo các cột được phép lưu
     protected $fillable = [
         'post_id',
         'user_id',
         'author_name',
         'author_email',
         'content',
-        'status', // 'pending', 'approved'
+        'status'
     ];
 
-    public function post(): BelongsTo
+    public function post()
     {
         return $this->belongsTo(Post::class);
     }
 
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
     }

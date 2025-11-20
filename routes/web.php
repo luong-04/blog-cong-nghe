@@ -4,12 +4,25 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\CategoryController; // Import CategoryController
 use App\Http\Controllers\Admin\PostController;     // [MỚI] Import PostController
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController; //router trang chủ
+use App\Http\Controllers\CommentController; //comment
 use App\Models\Post;
 
 Route::get('/', function () {
     return view('welcome');
 });
+// --- ROUTE DÀNH CHO KHÁCH (PUBLIC) ---
 
+// Trang chủ
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Trang xem chi tiết bài viết (slug là đường dẫn thân thiện)
+Route::get('/bai-viet/{slug}', [HomeController::class, 'show'])->name('posts.show');
+
+// Route gửi bình luận
+Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
+
+// --- ROUTE ADMIN ----
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
