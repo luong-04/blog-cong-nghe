@@ -18,7 +18,7 @@
                         <div class="md:col-span-2 space-y-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tiêu đề bài viết</label>
-                                <input type="text" name="title" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-white" required>
+                                <input type="text" id="post-title" name="title" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-white" required>
                             </div>
                             {{-- Nút tạo AI --}}
                             <div class="flex justify-end">
@@ -32,7 +32,7 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nội dung</label>
-                                <textarea name="content" rows="10" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-white"></textarea>
+                                <textarea id="post-content" name="content" rows="10" class="w-full border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:text-white"></textarea>
                             </div>
                             {{--Script xử lý Ajax --}}
                             <script>
