@@ -17,7 +17,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role', // Đảm bảo cột này có trong fillable
+        'role',
+        'avatar',
     ];
 
     protected $hidden = [

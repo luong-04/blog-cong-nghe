@@ -95,9 +95,10 @@
             </a>
             
             @auth
-                @if(Auth::user()->role === 'admin' || Auth::user()->role === 'author')
-                    <a href="{{ route('admin.posts.edit', $post->id) }}" class="text-sm bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full hover:bg-yellow-200 transition">
-                        ✏️ Sửa bài
+                {{-- Admin được sửa tất cả, Author chỉ sửa bài mình --}}
+                @if(Auth::user()->role === 'admin' || (Auth::user()->role === 'author' && $post->user_id === Auth::id()))
+                    <a href="{{ route('admin.posts.edit', $post->id) }}" class="...">
+                        ✏️ Sửa bài viết
                     </a>
                 @endif
             @endauth

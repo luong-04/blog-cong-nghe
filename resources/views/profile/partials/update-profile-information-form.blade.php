@@ -13,9 +13,25 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    <form enctype="multipart/form-data" method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6" enctype="multipart/form-data"> {{-- Thêm enctype --}}
         @csrf
         @method('patch')
+
+        {{-- [MỚI] Ô nhập Avatar --}}
+        <div>
+            <x-input-label for="avatar" :value="__('Ảnh đại diện')" />
+            
+            <div class="flex items-center gap-4 mt-2">
+                @if($user->avatar)
+                    <img src="{{ asset('storage/' . $user->avatar) }}" class="w-16 h-16 rounded-full object-cover border">
+                @else
+                    <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">N/A</div>
+                @endif
+                
+                <input id="avatar" name="avatar" type="file" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+            </div>
+            <x-input-error class="mt-2" :messages="$errors->get('avatar')" />
+        </div>
 
         <div>
             <x-input-label for="name" :value="__('Name')" />

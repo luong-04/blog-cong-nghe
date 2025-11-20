@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -30,6 +31,17 @@ class ProfileController extends Controller
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
+        }
+        
+        // [MỚI] Xử lý upload Avatar
+        if ($request->hasFile('avatar')) {
+            // Xóa ảnh cũ nếu có
+            if ($request->user()->avatar) {
+                Storage::disk('public')->delete($request->user()->avatar);
+            }
+            // Lưu ảnh mới
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $request->user()->avatar = $path;
         }
 
         $request->user()->save();

@@ -11,12 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Kiểm tra: Chỉ tạo nếu cột 'role' CHƯA tồn tại
-        if (!Schema::hasColumn('users', 'role')) {
-            Schema::table('users', function (Blueprint $table) {
-                $table->string('role')->default('user')->after('email'); 
-            });
-        }
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('avatar')->nullable()->after('email');
+        });
     }
 
     /**
