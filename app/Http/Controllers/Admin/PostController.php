@@ -66,58 +66,70 @@ class PostController extends Controller
 
         if (!$apiKey) return response()->json(['error' => 'Thiếu API Key'], 500);
 
-        // Model 2.0-flash mà bạn đã kiểm tra có trong danh sách
         $model = 'gemini-2.0-flash';
+        // PROMPT CHUYÊN NGHIỆP
+        $prompt = "
+        Đóng vai là một Reviewer công nghệ chuyên nghiệp, khách quan và am hiểu sâu sắc.
+        Hãy viết một bài đánh giá chi tiết về sản phẩm: '{$request->title}'.
         
-        $prompt = "Viết bài blog công nghệ chi tiết, chuẩn SEO, định dạng Markdown (thẻ h2, h3, bullet points) về chủ đề: " . $request->title;
+        YÊU CẦU VỀ NỘI DUNG & CẤU TRÚC (BẮT BUỘC):
+        1.  **Mở đầu:** Dẫn dắt vấn đề hấp dẫn, nêu bật điểm đặc biệt nhất của sản phẩm.
+        2.  **Thiết kế:** Đánh giá cảm giác cầm nắm, chất liệu, màu sắc.
+        3.  **Màn hình:** Đánh giá độ sắc nét, tần số quét, trải nghiệm xem phim/chơi game.
+        4.  **Hiệu năng:** Test game thực tế (Liên Quân, PUBG...), nhiệt độ, đa nhiệm.
+        5.  **Camera:** Đánh giá ảnh chụp đủ sáng, thiếu sáng, quay video.
+        6.  **Pin & Sạc:** Thời gian sử dụng thực tế (On-screen), tốc độ sạc.
+        7.  **Tổng kết:** Nêu rõ Ưu điểm/Nhược điểm và ai nên mua sản phẩm này.
+
+        YÊU CẦU VỀ ĐỊNH DẠNG (HTML ONLY):
+        - Trả về mã HTML chuẩn (không dùng Markdown).
+        - Sử dụng thẻ <h2> cho các mục lớn (Thiết kế, Hiệu năng...).
+        - Sử dụng thẻ <h3> cho các ý nhỏ hơn.
+        - Sử dụng thẻ <strong> hoặc <b> để bôi đậm các thông số kỹ thuật quan trọng (VD: Snapdragon 8 Gen 2, 5000mAh...).
+        - Sử dụng thẻ <ul> và <li> cho danh sách thông số hoặc ưu/nhược điểm.
+        - Chèn 3-4 thẻ <img> xen kẽ vào bài viết dùng link Pollinations:
+          <img src='https://image.pollinations.ai/prompt/{từ_khóa_tiếng_anh_về_đoạn_này}?width=1280&height=720&nologo=true' alt='Mô tả ảnh'>
+        
+        Lưu ý: Giọng văn phải tự nhiên, lôi cuốn, như đang trò chuyện với người đọc. Không dùng các câu rập khuôn của AI.
+        ";
 
         try {
-            // Cấu hình gửi đi
-            $payload = [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
-                        ]
-                    ]
-                ],
-                // [QUAN TRỌNG] Tắt bộ lọc an toàn để tránh bị trả về rỗng
-                'safetySettings' => [
-                    ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
-                    ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
-                    ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
-                    ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
-                ]
-            ];
-
-            // [QUAN TRỌNG] Thêm timeout(60) để chờ AI viết bài dài (mặc định chỉ 30s là bị ngắt)
             $response = Http::withoutVerifying()
                 ->timeout(60) 
                 ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", $payload);
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
+                    'contents' => [['parts' => [['text' => $prompt]]]],
+                    'safetySettings' => [
+                        ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
+                        ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
+                        ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
+                        ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
+                    ]
+                ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
                 
-                if ($text) {
-                    return response()->json(['content' => $text]);
-                }
-                
-                // Nếu không có text, trả về lý do chi tiết
-                return response()->json([
-                    'error' => 'AI trả về rỗng (Có thể do Safety Filter).',
-                    'raw_data' => $data
-                ], 500);
-            }
+                // Xóa các ký tự thừa nếu AI lỡ thêm vào
+                $content = str_replace(['```html', '```'], '', $content);
 
-            return response()->json([
-                'error' => 'Lỗi Google (' . $response->status() . ')',
-                'details' => $response->json()
-            ], 500);
+                if ($content) {
+                    // Tạo thêm 1 ảnh đại diện để lưu vào database
+                    $imagePrompt = urlencode($request->title . " tech review, realistic, 8k, cinematic lighting");
+                    $coverImage = "https://image.pollinations.ai/prompt/{$imagePrompt}?width=1280&height=720&nologo=true";
+
+                    return response()->json([
+                        'content' => $content,
+                        'image_url' => $coverImage
+                    ]);
+                }
+            }
+            
+            return response()->json(['error' => 'Lỗi Google', 'details' => $response->json()], 500);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Lỗi Server/Mạng: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Lỗi Server: ' . $e->getMessage()], 500);
         }
     }
 

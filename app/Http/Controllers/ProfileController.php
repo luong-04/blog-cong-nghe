@@ -59,11 +59,16 @@ class ProfileController extends Controller
     }
     public function requestAuthor(Request $request)
     {
+        // Lấy user hiện tại
         $user = $request->user();
+
+        // Nếu đang là user thường thì chuyển thành 'pending' (chờ duyệt)
         if ($user->role === 'user') {
-            $user->role = 'pending'; // Chuyển trạng thái thành chờ duyệt
+            $user->role = 'pending'; 
             $user->save();
+            return back()->with('status', 'request-sent'); // Gửi thông báo thành công
         }
-        return back()->with('status', 'Đã gửi yêu cầu! Vui lòng chờ duyệt.');
+
+        return back();
     }
 }
