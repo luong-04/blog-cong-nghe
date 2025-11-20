@@ -40,17 +40,25 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    {{-- Chỉ hiện nút duyệt nếu đang chờ hoặc là user thường --}}
+                                    {{-- Nút Duyệt (Cho pending/user) --}}
                                     @if($user->role == 'pending' || $user->role == 'user')
-                                        <form action="{{ route('admin.users.approve', $user->id) }}" method="POST">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded text-sm shadow transition">
-                                                ✅ Duyệt làm Tác giả
+                                        <form action="{{ route('admin.users.approve', $user->id) }}" method="POST" class="inline-block">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs font-bold shadow transition">
+                                                ✅ Duyệt Tác giả
                                             </button>
                                         </form>
+                                    
+                                    {{-- Nút Hủy Quyền (Cho Author) --}}
                                     @elseif($user->role == 'author')
-                                        <span class="text-green-600 text-sm">✓ Đã cấp quyền</span>
+                                        <span class="text-green-600 text-xs font-bold mr-2">✓ Đang là Tác giả</span>
+                                        
+                                        <form action="{{ route('admin.users.revoke', $user->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Bạn chắc chắn muốn tước quyền tác giả của người này?');">
+                                            @csrf @method('PATCH')
+                                            <button type="submit" class="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs font-bold shadow transition">
+                                                🚫 Hủy quyền
+                                            </button>
+                                        </form>
                                     @endif
                                 </td>
                             </tr>

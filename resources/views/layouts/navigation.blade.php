@@ -14,21 +14,23 @@
                         {{ __('Trang chủ') }}
                     </x-nav-link>
 
-                    {{-- 2. Các link quản lý (CHỈ HIỆN VỚI ADMIN HOẶC AUTHOR) --}}
+                    {{-- 2. Các link quản lý --}}
                     @if(Auth::user()->role === 'admin' || Auth::user()->role === 'author')
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
                         
-                        <x-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
-                            {{ __('QL Danh mục') }}
-                        </x-nav-link>
+                        {{-- CHỈ ADMIN MỚI THẤY QUẢN LÝ DANH MỤC --}}
+                        @if(Auth::user()->role === 'admin')
+                            <x-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
+                                {{ __('QL Danh mục') }}
+                            </x-nav-link>
+                        @endif
 
                         <x-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
                             {{ __('QL Bài viết') }}
                         </x-nav-link>
                         
-                        {{-- Chỉ Admin mới thấy quản lý User --}}
                         @if(Auth::user()->role === 'admin')
                              <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                                 {{ __('QL Thành viên') }}

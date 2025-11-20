@@ -13,9 +13,25 @@ use Illuminate\Support\Facades\Http; // [QUAN TRỌNG]: Để gọi API
 
 class PostController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with(['category', 'user'])->latest()->paginate(10);
+        $query = Post::with(['category', 'user']);
+
+        // 1. PHÂN QUYỀN: Nếu không phải Admin, chỉ được xem bài của chính mình
+        if ($request->user()->role !== 'admin') {
+            $query->where('user_id', $request->user()->id);
+        }
+
+        // 2. TÌM KIẾM: Nếu có từ khóa search
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%");
+            });
+        }
+
+        $posts = $query->latest()->paginate(10)->appends(['search' => $request->search]);
+        
         return view('admin.posts.index', compact('posts'));
     }
 
@@ -135,6 +151,11 @@ class PostController extends Controller
 
     public function edit(Post $post)
     {
+        // CHẶN: Author không được sửa bài của người khác
+        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) {
+            abort(403, 'Bạn không có quyền chỉnh sửa bài viết này.');
+        }
+
         $categories = Category::all();
         $tags = Tag::all();
         return view('admin.posts.edit', compact('post', 'categories', 'tags'));
@@ -142,6 +163,10 @@ class PostController extends Controller
 
     public function update(Request $request, Post $post)
     {
+        // CHẶN
+        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) {
+            abort(403);
+        }
         $request->validate([
             'title' => 'required|string|max:255|unique:posts,title,' . $post->id,
             'category_id' => 'required|exists:categories,id',
@@ -174,6 +199,11 @@ class PostController extends Controller
 
     public function destroy(Post $post)
     {
+        // CHẶN: Author không được xóa bài người khác (Admin được xóa tất)
+        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) {
+            abort(403, 'Bạn không được phép xóa bài viết này.');
+        }
+
         if ($post->featured_image) {
             Storage::disk('public')->delete($post->featured_image);
         }

@@ -21,4 +21,14 @@ class UserController extends Controller
         $user->update(['role' => 'author']);
         return back()->with('success', 'Đã cấp quyền Tác giả cho ' . $user->name);
     }
+    // Hủy quyền tác giả (Giáng cấp về User thường)
+    public function revoke(User $user)
+    {
+        if ($user->role === 'admin') {
+            return back()->with('error', 'Không thể hủy quyền của Admin!');
+        }
+
+        $user->update(['role' => 'user']); // Reset về user thường
+        return back()->with('success', 'Đã hủy quyền tác giả của ' . $user->name);
+    }
 }
