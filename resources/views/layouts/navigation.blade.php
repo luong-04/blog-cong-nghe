@@ -117,7 +117,7 @@
                         {{ __('QL Bình luận') }}
                     </x-responsive-nav-link>
                     {{-- Link quảng cáo --}}
-                    <x-nav-link :href="route('admin.ads.index')" :active="request()->routeIs('admin.ads.*')">
+                    <x-responsive-nav-link :href="route('admin.ads.index')" :active="request()->routeIs('admin.ads.*')">
                         {{ __('QL Quảng cáo') }}
                     </x-nav-link>
                 @endif
