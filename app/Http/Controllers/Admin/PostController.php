@@ -9,7 +9,7 @@ use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Http; // [QUAN TRỌNG]: Để gọi API
+use Illuminate\Support\Facades\Http;
 
 class PostController extends Controller
 {
@@ -17,21 +17,17 @@ class PostController extends Controller
     {
         $query = Post::with(['category', 'user']);
 
-        // 1. PHÂN QUYỀN: Nếu không phải Admin, chỉ được xem bài của chính mình
+        // Phân quyền: Author chỉ thấy bài mình
         if ($request->user()->role !== 'admin') {
             $query->where('user_id', $request->user()->id);
         }
 
-        // 2. TÌM KIẾM: Nếu có từ khóa search
+        // Tìm kiếm
         if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%");
-            });
+            $query->where('title', 'like', "%{$request->search}%");
         }
 
         $posts = $query->latest()->paginate(10)->appends(['search' => $request->search]);
-        
         return view('admin.posts.index', compact('posts'));
     }
 
@@ -73,7 +69,7 @@ class PostController extends Controller
     }
 
     /**
-     * [CHỨC NĂNG MỚI] Tạo nội dung bằng AI
+     * [AI THÔNG MINH] Tự động nhận diện chủ đề để viết bài
      */
     public function generateContent(Request $request)
     {
@@ -83,30 +79,40 @@ class PostController extends Controller
         if (!$apiKey) return response()->json(['error' => 'Thiếu API Key'], 500);
 
         $model = 'gemini-2.0-flash';
-        // PROMPT CHUYÊN NGHIỆP
-        $prompt = "
-        Đóng vai là một Reviewer công nghệ chuyên nghiệp, khách quan và am hiểu sâu sắc.
-        Hãy viết một bài đánh giá chi tiết về sản phẩm: '{$request->title}'.
-        
-        YÊU CẦU VỀ NỘI DUNG & CẤU TRÚC (BẮT BUỘC):
-        1.  **Mở đầu:** Dẫn dắt vấn đề hấp dẫn, nêu bật điểm đặc biệt nhất của sản phẩm.
-        2.  **Thiết kế:** Đánh giá cảm giác cầm nắm, chất liệu, màu sắc.
-        3.  **Màn hình:** Đánh giá độ sắc nét, tần số quét, trải nghiệm xem phim/chơi game.
-        4.  **Hiệu năng:** Test game thực tế (Liên Quân, PUBG...), nhiệt độ, đa nhiệm.
-        5.  **Camera:** Đánh giá ảnh chụp đủ sáng, thiếu sáng, quay video.
-        6.  **Pin & Sạc:** Thời gian sử dụng thực tế (On-screen), tốc độ sạc.
-        7.  **Tổng kết:** Nêu rõ Ưu điểm/Nhược điểm và ai nên mua sản phẩm này.
 
-        YÊU CẦU VỀ ĐỊNH DẠNG (HTML ONLY):
-        - Trả về mã HTML chuẩn (không dùng Markdown).
-        - Sử dụng thẻ <h2> cho các mục lớn (Thiết kế, Hiệu năng...).
-        - Sử dụng thẻ <h3> cho các ý nhỏ hơn.
-        - Sử dụng thẻ <strong> hoặc <b> để bôi đậm các thông số kỹ thuật quan trọng (VD: Snapdragon 8 Gen 2, 5000mAh...).
-        - Sử dụng thẻ <ul> và <li> cho danh sách thông số hoặc ưu/nhược điểm.
-        - Chèn 3-4 thẻ <img> xen kẽ vào bài viết dùng link Pollinations:
-          <img src='https://image.pollinations.ai/prompt/{từ_khóa_tiếng_anh_về_đoạn_này}?width=1280&height=720&nologo=true' alt='Mô tả ảnh'>
-        
-        Lưu ý: Giọng văn phải tự nhiên, lôi cuốn, như đang trò chuyện với người đọc. Không dùng các câu rập khuôn của AI.
+        // PROMPT ĐA NĂNG: Xử lý mọi loại chủ đề
+        $prompt = "
+        Bạn là một biên tập viên công nghệ chuyên nghiệp (giọng văn hiện đại, tinh tế như VnExpress Số Hóa, TinhTe).
+        Nhiệm vụ: Viết bài chi tiết về chủ đề: '{$request->title}'.
+
+        BƯỚC 1: PHÂN TÍCH & CHỌN CẤU TRÚC
+        Hãy tự động nhận diện xem tiêu đề này thuộc thể loại nào để chọn cách viết phù hợp nhất:
+        - Loại 1: Review Sản phẩm (Điện thoại, Laptop, Loa...) -> Cấu trúc: Mở đầu, Thiết kế, Màn hình/Âm thanh, Hiệu năng, Pin, Kết luận.
+        - Loại 2: Thủ thuật / Hướng dẫn (Cách cài Win, Fix lỗi...) -> Cấu trúc: Vấn đề là gì?, Các bước thực hiện (Bước 1, 2, 3...), Lưu ý quan trọng.
+        - Loại 3: Tin tức / Xu hướng (AI, Blockchain, Sự kiện ra mắt...) -> Cấu trúc: Bối cảnh sự kiện, Chi tiết nổi bật, Tác động đến thị trường, Nhận định tương lai.
+        - Loại 4: Top List (Top 5 điện thoại giá rẻ...) -> Cấu trúc: Mở đầu, Danh sách từng món (kèm ưu/nhược điểm), Tư vấn chọn mua.
+
+        BƯỚC 2: ĐỊNH DẠNG JSON (BẮT BUỘC)
+        Chỉ trả về duy nhất 1 JSON object (không thêm lời dẫn):
+        {
+            \"html_content\": \"(Mã HTML nội dung bài viết)\",
+            \"cover_image_prompt\": \"(Câu lệnh tiếng Anh để vẽ ảnh bìa)\"
+        }
+
+        YÊU CẦU VỀ NỘI DUNG HTML:
+        1. Sử dụng thẻ <h2>, <h3>, <p>, <ul>, <li>. KHÔNG dùng Markdown.
+        2. Sử dụng Class Tailwind CSS để trình bày đẹp mắt:
+           - Tiêu đề H2: <h2 class='text-2xl font-bold text-indigo-700 mt-8 mb-4 border-l-4 border-indigo-500 pl-4'>Nội dung thẻ H2</h2>
+           - Tiêu đề H3: <h3 class='text-xl font-semibold text-gray-800 mt-6 mb-2'>Nội dung thẻ H3</h3>
+           - Đoạn văn: <p class='mb-4 text-gray-600 leading-relaxed text-justify'>...</p>
+           - Danh sách: <ul class='list-disc list-inside mb-4 space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100'>...</ul>
+        3. CHÈN ẢNH MINH HỌA THÔNG MINH:
+           - Tự động chèn 2-3 thẻ <img> xen kẽ vào giữa bài viết (sau mỗi phần chính).
+           - Link ảnh: https://image.pollinations.ai/prompt/{KEYWORD_TIẾNG_ANH}?width=1024&height=600&nologo=true
+           - Quan trọng: {KEYWORD_TIẾNG_ANH} phải mô tả đúng nội dung đoạn đó. Ví dụ đoạn nói về 'CPU nhiệt độ cao' thì keyword là 'cpu processor overheating closeup realistic'.
+
+        YÊU CẦU VỀ ẢNH BÌA (cover_image_prompt):
+        - Viết một câu prompt tiếng Anh thật nghệ thuật, sát với tiêu đề bài viết (VD: 'MacBook Pro M3 on wooden desk, cinematic lighting, 8k').
         ";
 
         try {
@@ -115,25 +121,21 @@ class PostController extends Controller
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
                     'contents' => [['parts' => [['text' => $prompt]]]],
-                    'safetySettings' => [
-                        ['category' => 'HARM_CATEGORY_HARASSMENT', 'threshold' => 'BLOCK_NONE'],
-                        ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_NONE'],
-                        ['category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold' => 'BLOCK_NONE'],
-                        ['category' => 'HARM_CATEGORY_DANGEROUS_CONTENT', 'threshold' => 'BLOCK_NONE'],
-                    ]
+                    'generationConfig' => ['responseMimeType' => 'application/json']
                 ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                $content = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                
-                // Xóa các ký tự thừa nếu AI lỡ thêm vào
-                $content = str_replace(['```html', '```'], '', $content);
+                $rawText = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                $jsonResult = json_decode($rawText, true);
 
-                if ($content) {
-                    // Tạo thêm 1 ảnh đại diện để lưu vào database
-                    $imagePrompt = urlencode($request->title . " tech review, realistic, 8k, cinematic lighting");
-                    $coverImage = "https://image.pollinations.ai/prompt/{$imagePrompt}?width=1280&height=720&nologo=true";
+                if ($jsonResult) {
+                    $content = $jsonResult['html_content'] ?? '';
+                    $englishPrompt = $jsonResult['cover_image_prompt'] ?? $request->title;
+                    
+                    // Xử lý prompt ảnh bìa để URL hợp lệ
+                    $encodedPrompt = urlencode($englishPrompt . ", 4k, realistic, tech style");
+                    $coverImage = "https://image.pollinations.ai/prompt/{$encodedPrompt}?width=1280&height=720&nologo=true";
 
                     return response()->json([
                         'content' => $content,
@@ -141,21 +143,18 @@ class PostController extends Controller
                     ]);
                 }
             }
-            
-            return response()->json(['error' => 'Lỗi Google', 'details' => $response->json()], 500);
+
+            return response()->json(['error' => 'Lỗi xử lý từ AI', 'raw' => $response->json()], 500);
 
         } catch (\Exception $e) {
             return response()->json(['error' => 'Lỗi Server: ' . $e->getMessage()], 500);
         }
     }
 
+    // ... (Các hàm edit, update, destroy GIỮ NGUYÊN như cũ) ...
     public function edit(Post $post)
     {
-        // CHẶN: Author không được sửa bài của người khác
-        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) {
-            abort(403, 'Bạn không có quyền chỉnh sửa bài viết này.');
-        }
-
+        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) abort(403);
         $categories = Category::all();
         $tags = Tag::all();
         return view('admin.posts.edit', compact('post', 'categories', 'tags'));
@@ -163,10 +162,8 @@ class PostController extends Controller
 
     public function update(Request $request, Post $post)
     {
-        // CHẶN
-        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) {
-            abort(403);
-        }
+        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) abort(403);
+        
         $request->validate([
             'title' => 'required|string|max:255|unique:posts,title,' . $post->id,
             'category_id' => 'required|exists:categories,id',
@@ -174,9 +171,7 @@ class PostController extends Controller
         ]);
 
         if ($request->hasFile('featured_image')) {
-            if ($post->featured_image) {
-                Storage::disk('public')->delete($post->featured_image);
-            }
+            if ($post->featured_image) Storage::disk('public')->delete($post->featured_image);
             $post->featured_image = $request->file('featured_image')->store('posts', 'public');
         }
 
@@ -187,29 +182,18 @@ class PostController extends Controller
             'content' => $request->input('content'),
             'status' => $request->status,
         ]);
+        
+        if ($request->tags) $post->tags()->sync($request->tags);
 
-        if ($request->tags) {
-            $post->tags()->sync($request->tags);
-        } else {
-            $post->tags()->detach();
-        }
-
-        return redirect()->route('admin.posts.index')->with('success', 'Cập nhật bài viết thành công!');
+        return redirect()->route('admin.posts.index')->with('success', 'Cập nhật thành công!');
     }
 
     public function destroy(Post $post)
     {
-        // CHẶN: Author không được xóa bài người khác (Admin được xóa tất)
-        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) {
-            abort(403, 'Bạn không được phép xóa bài viết này.');
-        }
-
-        if ($post->featured_image) {
-            Storage::disk('public')->delete($post->featured_image);
-        }
+        if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) abort(403);
+        if ($post->featured_image) Storage::disk('public')->delete($post->featured_image);
         $post->tags()->detach();
         $post->delete();
-
-        return redirect()->route('admin.posts.index')->with('success', 'Đã xóa bài viết!');
+        return redirect()->route('admin.posts.index')->with('success', 'Đã xóa!');
     }
 }
