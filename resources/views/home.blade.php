@@ -12,11 +12,9 @@
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         
-        /* Hiệu ứng chuyển cảnh cho Slider */
-        .fade-enter { opacity: 0; }
-        .fade-enter-active { opacity: 1; transition: opacity 0.5s ease-in-out; }
-        .fade-exit { opacity: 1; }
-        .fade-exit-active { opacity: 0; transition: opacity 0.5s ease-in-out; }
+        /* CSS cho Slider Quảng cáo */
+        .ad-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s ease-in-out; }
+        .ad-slide.active { opacity: 1; z-index: 10; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased flex flex-col min-h-screen">
@@ -24,10 +22,10 @@
     {{-- HEADER --}}
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-            <a href="/" class="text-xl font-bold text-indigo-700 flex items-center gap-2">
-                <span class="bg-indigo-700 text-white w-8 h-8 flex items-center justify-center rounded text-sm">T</span>
-                TechBlog
-            </a>
+        <a href="/" class="group flex items-center gap-1.5 text-2xl font-extrabold tracking-tight hover:opacity-90 transition">
+            <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg shadow-sm group-hover:bg-indigo-700 transition">Tech</span>
+            <span class="text-gray-900">Blog</span>
+        </a>
 
             <form action="{{ route('home') }}" method="GET" class="hidden md:flex flex-1 max-w-md mx-8 relative">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Tìm kiếm..." 
@@ -64,7 +62,7 @@
     </header>
 
     {{-- MENU DANH MỤC --}}
-    <nav class="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-16 z-40">
+    <nav class="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-16 z-40 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center gap-6 overflow-x-auto scrollbar-hide py-2.5 text-sm font-medium">
                 <a href="{{ route('home') }}" class="{{ request()->routeIs('home') && !isset($isCategory) ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600' }} whitespace-nowrap">Mới nhất</a>
@@ -75,9 +73,38 @@
         </div>
     </nav>
 
+    {{-- === [MỚI] KHU VỰC BANNER QUẢNG CÁO TRƯỢT (NGANG) === --}}
+    @if(isset($ads) && $ads->count() > 0)
+    <div class="bg-white border-b border-gray-200 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div id="banner-slider" class="relative w-full h-32 md:h-48 rounded-xl overflow-hidden shadow-sm group bg-gray-100">
+                @foreach($ads as $index => $ad)
+                    <a href="{{ $ad->link ?? '#' }}" target="_blank" class="ad-slide {{ $index == 0 ? 'active' : '' }} block w-full h-full">
+                        <img src="{{ asset('storage/'.$ad->image) }}" class="w-full h-full object-cover" alt="{{ $ad->title }}">
+                        <span class="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm">QC</span>
+                    </a>
+                @endforeach
+
+                {{-- Nút điều hướng slide (Chỉ hiện khi có > 1 ảnh) --}}
+                @if($ads->count() > 1)
+                    <button onclick="changeSlide(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/80 text-black p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition z-20">❮</button>
+                    <button onclick="changeSlide(1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/80 text-black p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition z-20">❯</button>
+                    
+                    {{-- Dấu chấm --}}
+                    <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                        @foreach($ads as $index => $ad)
+                            <span class="dot w-1.5 h-1.5 rounded-full bg-white/50 cursor-pointer {{ $index == 0 ? 'bg-white' : '' }}" onclick="goToSlide({{ $index }})"></span>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
         
-        {{-- 1. TÌM KIẾM / DANH MỤC --}}
+        {{-- PHẦN 1: TÌM KIẾM HOẶC DANH MỤC --}}
         @if(($isSearch ?? false) || ($isCategory ?? false))
             <div class="mb-6 border-b border-gray-200 pb-3">
                 <h1 class="text-xl font-bold text-gray-900">
@@ -89,13 +116,14 @@
 
         @php $displayPosts = isset($posts) ? $posts : ($recentPosts ?? collect()); @endphp
 
+        {{-- PHẦN 2: TRANG CHỦ CHÍNH --}}
         @if(isset($heroPost) && !($isSearch ?? false) && !($isCategory ?? false))
-            {{-- HERO SECTION (Giữ nguyên phần Hero đẹp) --}}
+            {{-- A. HERO SECTION --}}
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
-                {{-- Tin To --}}
+                {{-- Tin To (Chiếm 8 phần) --}}
                 <div class="lg:col-span-8 group relative rounded-xl overflow-hidden shadow-sm h-[400px]">
                      @auth @if(Auth::user()->role === 'admin' || (Auth::user()->role === 'author' && $heroPost->user_id === Auth::id()))
-                        <a href="{{ route('admin.posts.edit', $heroPost->id) }}" class="absolute top-3 right-3 z-20 bg-white/90 text-indigo-600 px-2 py-1 rounded text-xs font-bold shadow">Sửa</a>
+                        <a href="{{ route('admin.posts.edit', $heroPost->id) }}" class="absolute top-3 right-3 z-20 bg-white/90 text-indigo-600 px-2 py-1 rounded text-xs font-bold shadow hover:text-indigo-800">Sửa</a>
                      @endif @endauth
                     <a href="{{ route('posts.show', $heroPost->slug) }}" class="block h-full w-full">
                         @if($heroPost->featured_image) 
@@ -112,10 +140,13 @@
                     </a>
                 </div>
 
-                {{-- 2 Tin Nhỏ Bên Phải --}}
+                {{-- Tin Phụ (Chiếm 4 phần) --}}
                 <div class="lg:col-span-4 flex flex-col gap-6 h-[400px]">
                     @foreach($featuredPosts as $subPost)
                     <div class="relative flex-1 rounded-xl overflow-hidden group h-full shadow-sm bg-gray-900">
+                         @auth @if(Auth::user()->role === 'admin' || (Auth::user()->role === 'author' && $subPost->user_id === Auth::id()))
+                            <a href="{{ route('admin.posts.edit', $subPost->id) }}" class="absolute top-2 right-2 z-20 bg-white/90 text-indigo-600 px-2 py-1 rounded text-[10px] font-bold shadow hover:text-indigo-800">Sửa</a>
+                         @endif @endauth
                         <a href="{{ route('posts.show', $subPost->slug) }}" class="block h-full w-full">
                             @if($subPost->featured_image) <img src="{{ asset('storage/' . $subPost->featured_image) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-90"> @endif
                             <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
@@ -134,146 +165,101 @@
             </div>
         @endif
 
-        {{-- === PHẦN CHÍNH: CHIA CỘT BÀI VIẾT (TRÁI) VÀ QUẢNG CÁO (PHẢI) === --}}
-        
-        <div class="flex flex-col lg:flex-row gap-8">
-            
-            {{-- CỘT TRÁI: DANH SÁCH BÀI VIẾT (Chiếm 75%) --}}
-            <div class="w-full lg:w-3/4">
-                @if($displayPosts->count() > 0)
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        @foreach($displayPosts as $post)
-                            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition group flex flex-col h-full relative">
-                                {{-- Nút Sửa/Xóa --}}
-                                @auth @if(Auth::user()->role === 'admin' || (Auth::user()->role === 'author' && $post->user_id === Auth::id()))
-                                    <div class="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                                        <a href="{{ route('admin.posts.edit', $post->id) }}" class="bg-white text-indigo-600 p-1 rounded shadow hover:bg-indigo-600 hover:text-white transition text-xs">✏️</a>
-                                        @if(Auth::user()->role === 'admin')
-                                            <form action="{{ route('admin.posts.destroy', $post->id) }}" method="POST" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')<button class="bg-white text-red-500 p-1 rounded shadow hover:bg-red-500 hover:text-white transition text-xs">🗑️</button></form>
-                                        @endif
-                                    </div>
-                                @endif @endauth
-                                
-                                <a href="{{ route('posts.show', $post->slug) }}" class="block h-48 overflow-hidden relative bg-gray-100 shrink-0">
-                                    @if($post->featured_image) 
-                                        <img src="{{ asset('storage/' . $post->featured_image) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                                    @else <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div> @endif
-                                    <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-indigo-600 text-[10px] font-bold uppercase px-2 py-1 rounded shadow-sm tracking-wide">
-                                        {{ $post->category->name ?? 'Tech' }}
-                                    </span>
-                                </a>
-                                
-                                <div class="p-3 flex flex-col flex-1">
-                                    <h3 class="font-bold text-gray-900 text-[16px] leading-snug mb-2 group-hover:text-indigo-600 transition line-clamp-2 h-[2.5rem] overflow-hidden">
-                                        <a href="{{ route('posts.show', $post->slug) }}">{{ $post->title }}</a>
-                                    </h3>
-                                    <p class="text-gray-500 text-sm leading-relaxed mb-3 flex-1 h-[4.5rem] overflow-hidden line-clamp-3">
-                                        {{ Str::limit(strip_tags($post->content), 100) }}
-                                    </p>
-                                    <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto text-[11px] text-gray-400">
-                                        <div class="flex items-center gap-1.5">
-                                            @if($post->user->avatar) <img src="{{ asset('storage/' . $post->user->avatar) }}" class="w-5 h-5 rounded-full object-cover border border-gray-100">
-                                            @else <div class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[9px] font-bold">{{ substr($post->user->name, 0, 1) }}</div> @endif
-                                            <span class="font-medium text-gray-600 truncate max-w-[80px]">{{ $post->user->name }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            {{-- [MỚI] Hiển thị View --}}
-                                            <span class="flex items-center gap-1" title="Lượt xem">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                {{ $post->views }}
-                                            </span>
-                                            <span>{{ $post->created_at->format('d/m') }}</span>
-                                        </div>
-                                    </div>
+        {{-- DANH SÁCH BÀI VIẾT (FULL WIDTH - KHÔNG CÒN SIDEBAR) --}}
+        @if($displayPosts->count() > 0)
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"> {{-- Tăng lên 4 cột cho rộng --}}
+                @foreach($displayPosts as $post)
+                    <article class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col h-full relative group">
+                        
+                        {{-- Nút Sửa/Xóa (Fix Mobile) --}}
+                        @auth @if(Auth::user()->role === 'admin' || (Auth::user()->role === 'author' && $post->user_id === Auth::id()))
+                            <div class="absolute top-2 right-2 z-20 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition duration-200">
+                                <a href="{{ route('admin.posts.edit', $post->id) }}" class="bg-white text-indigo-600 p-1.5 rounded shadow hover:bg-indigo-600 hover:text-white transition" title="Sửa">✏️</a>
+                                @if(Auth::user()->role === 'admin')
+                                    <form action="{{ route('admin.posts.destroy', $post->id) }}" method="POST" onsubmit="return confirm('Xóa?')">@csrf @method('DELETE')
+                                    <button type="submit" class="bg-white text-red-500 p-1.5 rounded shadow hover:bg-red-500 hover:text-white transition" title="Xóa">🗑️</button></form>
+                                @endif
+                            </div>
+                        @endif @endauth
+
+                        <a href="{{ route('posts.show', $post->slug) }}" class="block h-40 overflow-hidden relative bg-gray-100 shrink-0">
+                            @if($post->featured_image) 
+                                <img src="{{ asset('storage/' . $post->featured_image) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            @else <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div> @endif
+                            <span class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-indigo-600 text-[10px] font-bold uppercase px-2 py-0.5 rounded shadow-sm">{{ $post->category->name ?? 'Tech' }}</span>
+                        </a>
+
+                        <div class="p-3 flex flex-col flex-1">
+                            <h3 class="font-bold text-gray-900 text-sm leading-snug mb-2 h-[2.5rem] overflow-hidden">
+                                <a href="{{ route('posts.show', $post->slug) }}" class="hover:text-indigo-600 transition">{{ $post->title }}</a>
+                            </h3>
+                            <p class="text-gray-500 text-xs leading-relaxed mb-3 flex-1 h-[3.6rem] overflow-hidden line-clamp-3">
+                                {{ Str::limit(strip_tags($post->content), 100) }}
+                            </p>
+                            <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto text-[11px] text-gray-400">
+                                <div class="flex items-center gap-1.5">
+                                    @if($post->user->avatar) <img src="{{ asset('storage/' . $post->user->avatar) }}" class="w-5 h-5 rounded-full object-cover border border-gray-100">
+                                    @else <div class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[9px] font-bold">{{ substr($post->user->name, 0, 1) }}</div> @endif
+                                    <span class="font-medium text-gray-600 truncate max-w-[80px]">{{ $post->user->name }}</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span>👁 {{ $post->views }}</span>
                                 </div>
                             </div>
-                        @endforeach
-                    </div>
-                    <div class="mt-8 text-sm">{{ $displayPosts->links() }}</div>
-                @else
-                    <div class="text-center py-20 text-gray-500"><p class="text-lg">Chưa có bài viết nào.</p></div>
-                @endif
-            </div>
-
-            {{-- CỘT PHẢI: QUẢNG CÁO (Chiếm 25%) --}}
-            <div class="w-full lg:w-1/4 space-y-6">
-                
-                {{-- KHUNG QUẢNG CÁO TRƯỢT (Sticky) --}}
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 sticky top-24">
-                    <h4 class="font-bold text-gray-400 text-[10px] uppercase mb-3 tracking-widest text-center">Quảng cáo</h4>
-                    
-                    {{-- SLIDER --}}
-                    <div id="ad-slider" class="relative w-full h-[300px] overflow-hidden rounded-lg bg-gray-100 group">
-                        {{-- Ảnh 1 --}}
-                        <a href="#" class="ad-slide absolute inset-0 transition-opacity duration-700 opacity-100 block h-full">
-                            <img src="https://image.pollinations.ai/prompt/tech%20gadget%20sale%20banner%20colorful?width=300&height=400&nologo=true" class="w-full h-full object-cover" alt="Quảng cáo 1">
-                        </a>
-                        {{-- Ảnh 2 --}}
-                        <a href="#" class="ad-slide absolute inset-0 transition-opacity duration-700 opacity-0 block h-full">
-                            <img src="https://image.pollinations.ai/prompt/new%20laptop%20promotion%20cyberpunk?width=300&height=400&nologo=true" class="w-full h-full object-cover" alt="Quảng cáo 2">
-                        </a>
-                        {{-- Ảnh 3 --}}
-                        <a href="#" class="ad-slide absolute inset-0 transition-opacity duration-700 opacity-0 block h-full">
-                            <img src="https://image.pollinations.ai/prompt/coding%20course%20advertisement%20minimalist?width=300&height=400&nologo=true" class="w-full h-full object-cover" alt="Quảng cáo 3">
-                        </a>
-
-                        {{-- Nút điều hướng nhỏ --}}
-                        <div class="absolute bottom-2 left-0 w-full flex justify-center gap-1 z-10">
-                            <button class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition ad-dot"></button>
-                            <button class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition ad-dot"></button>
-                            <button class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition ad-dot"></button>
                         </div>
-                    </div>
-                    
-                    <p class="text-center text-[10px] text-gray-400 mt-2">Liên hệ quảng cáo: contact@techblog.com</p>
-                </div>
-
+                    </article>
+                @endforeach
             </div>
-        </div>
+            <div class="mt-8 text-sm">{{ $displayPosts->links() }}</div>
+        @else
+            <div class="text-center py-20 text-gray-500">Chưa có bài viết nào.</div>
+        @endif
 
     </main>
 
     <footer class="bg-white border-t border-gray-200 py-8 text-center text-gray-500 text-xs">
-        <p class="font-bold text-gray-900 text-base mb-1">TechBlog.</p>
-        <p>© {{ date('Y') }} Xây dựng với Laravel 11 & Gemini AI.</p>
+        <p>© {{ date('Y') }} 
+            <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg shadow-sm group-hover:bg-indigo-700 transition">Tech</span>
+            <span class="text-gray-900">Blog</span>
+        </p>
     </footer>
 
-    {{-- SCRIPT CHẠY SLIDER QUẢNG CÁO --}}
+    {{-- JAVASCRIPT CHO SLIDER QUẢNG CÁO --}}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const slides = document.querySelectorAll('.ad-slide');
-            const dots = document.querySelectorAll('.ad-dot');
-            let currentSlide = 0;
-            const totalSlides = slides.length;
+        let slideIndex = 0;
+        const slides = document.querySelectorAll('.ad-slide');
+        const dots = document.querySelectorAll('.dot');
 
-            function showSlide(index) {
-                // Ẩn tất cả
-                slides.forEach(s => s.classList.remove('opacity-100'));
-                slides.forEach(s => s.classList.add('opacity-0'));
-                dots.forEach(d => d.classList.replace('bg-white', 'bg-white/50'));
-
-                // Hiện slide hiện tại
-                slides[index].classList.remove('opacity-0');
-                slides[index].classList.add('opacity-100');
-                dots[index].classList.replace('bg-white/50', 'bg-white');
-            }
-
-            function nextSlide() {
-                currentSlide = (currentSlide + 1) % totalSlides;
-                showSlide(currentSlide);
-            }
-
-            // Tự động chạy sau 3 giây
-            setInterval(nextSlide, 3000);
+        function showSlides() {
+            if (slides.length === 0) return;
             
-            // Click vào chấm tròn
-            dots.forEach((dot, idx) => {
-                dot.addEventListener('click', () => {
-                    currentSlide = idx;
-                    showSlide(currentSlide);
-                });
-            });
-        });
+            // Ẩn hết
+            slides.forEach(slide => { slide.classList.remove('active'); slide.style.opacity = 0; });
+            dots.forEach(dot => dot.classList.remove('bg-white'));
+            
+            // Reset index
+            if (slideIndex >= slides.length) slideIndex = 0;
+            if (slideIndex < 0) slideIndex = slides.length - 1;
+
+            // Hiện slide hiện tại
+            slides[slideIndex].classList.add('active');
+            slides[slideIndex].style.opacity = 1;
+            
+            // Active dot
+            if(dots.length > 0) {
+                dots.forEach(dot => dot.classList.replace('bg-white', 'bg-white/50'));
+                dots[slideIndex].classList.replace('bg-white/50', 'bg-white');
+            }
+        }
+
+        function nextSlide() { slideIndex++; showSlides(); }
+        function changeSlide(n) { slideIndex += n; showSlides(); }
+        function goToSlide(n) { slideIndex = n; showSlides(); }
+
+        // Tự chạy
+        setInterval(nextSlide, 4000); 
+        // Chạy lần đầu
+        showSlides();
     </script>
 </body>
 </html>

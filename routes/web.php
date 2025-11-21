@@ -58,6 +58,9 @@ Route::middleware(['auth', 'verified', 'role:admin,author'])->prefix('admin')->n
         //Quản lý bình luận
         Route::get('comments', [App\Http\Controllers\Admin\CommentManagerController::class, 'index'])->name('comments.index');
         Route::delete('comments/{comment}', [App\Http\Controllers\Admin\CommentManagerController::class, 'destroy'])->name('comments.destroy');
+        //QUản lý quảng cáo
+        Route::resource('ads', \App\Http\Controllers\Admin\AdController::class);
+        Route::patch('ads/{ad}/toggle', [\App\Http\Controllers\Admin\AdController::class, 'toggle'])->name('ads.toggle');
     });
 });
 

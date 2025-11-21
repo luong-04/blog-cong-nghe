@@ -26,10 +26,15 @@
                                 {{ __('QL Danh mục') }}
                             </x-nav-link>
 
-                            {{-- [MỚI BỔ SUNG] Link QL Bình luận cho Desktop --}}
+                            {{-- Link QL Bình luận cho Desktop --}}
                             <x-nav-link :href="route('admin.comments.index')" :active="request()->routeIs('admin.comments.*')">
                                 {{ __('QL Bình luận') }}
                             </x-nav-link>
+                            {{-- -Link QL quảng cáo --}}
+                            <x-nav-link :href="route('admin.ads.index')" :active="request()->routeIs('admin.ads.*')">
+                                {{ __('QL Quảng cáo') }}
+                            </x-nav-link>
+
                         @endif
 
                         <x-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
@@ -111,6 +116,10 @@
                     <x-responsive-nav-link :href="route('admin.comments.index')" :active="request()->routeIs('admin.comments.*')">
                         {{ __('QL Bình luận') }}
                     </x-responsive-nav-link>
+                    {{-- Link quảng cáo --}}
+                    <x-nav-link :href="route('admin.ads.index')" :active="request()->routeIs('admin.ads.*')">
+                        {{ __('QL Quảng cáo') }}
+                    </x-nav-link>
                 @endif
 
                 <x-responsive-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">

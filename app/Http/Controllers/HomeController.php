@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use App\Models\Ad;
 
 class HomeController extends Controller
 {
@@ -12,6 +13,9 @@ class HomeController extends Controller
     {
         // 1. Lấy danh mục cho menu
         $categories = Category::withCount('posts')->get();
+
+        // Lấy danh sách quảng cáo đang kích hoạt (Active)
+        $ads = Ad::where('is_active', true)->latest()->get();
 
         // 2. Khởi tạo query cơ bản (chỉ lấy bài đã Public)
         $query = Post::with(['user', 'category'])->where('status', 'published');
@@ -21,7 +25,8 @@ class HomeController extends Controller
             $posts = $query->where('title', 'like', "%{$request->search}%")
                            ->latest()
                            ->paginate(12);
-            return view('home', compact('posts', 'categories'))->with('isSearch', true);
+            // Thêm 'ads' vào compact
+            return view('home', compact('posts', 'categories', 'ads'))->with('isSearch', true);
         }
 
         // --- TRƯỜNG HỢP 2: TRANG CHỦ (GIAO DIỆN TẠP CHÍ) ---
@@ -52,7 +57,8 @@ class HomeController extends Controller
             ->latest()
             ->paginate(9);
 
-        return view('home', compact('categories', 'heroPost', 'featuredPosts', 'recentPosts'));
+        // Thêm 'ads' vào compact
+        return view('home', compact('categories', 'heroPost', 'featuredPosts', 'recentPosts', 'ads'));
     }
 
     public function show($slug)
@@ -67,12 +73,16 @@ class HomeController extends Controller
         $currentCategory = Category::where('slug', $slug)->firstOrFail();
         $categories = Category::withCount('posts')->get();
         
+        // [MỚI] Lấy quảng cáo cho trang danh mục luôn (nếu muốn hiện)
+        $ads = Ad::where('is_active', true)->latest()->get();
+        
         $posts = Post::with(['user', 'category'])
             ->where('category_id', $currentCategory->id)
             ->where('status', 'published')
             ->latest()
             ->paginate(12);
 
-        return view('home', compact('posts', 'categories', 'currentCategory'))->with('isCategory', true);
+        // Thêm 'ads' vào compact
+        return view('home', compact('posts', 'categories', 'currentCategory', 'ads'))->with('isCategory', true);
     }
 }
