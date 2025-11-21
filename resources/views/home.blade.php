@@ -64,12 +64,36 @@
     {{-- MENU DANH MỤC --}}
     <nav class="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-16 z-40 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center gap-6 overflow-x-auto scrollbar-hide py-2.5 text-sm font-medium">
-                <a href="{{ route('home') }}" class="{{ request()->routeIs('home') && !isset($isCategory) ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600' }} whitespace-nowrap">Mới nhất</a>
+            
+            {{-- Giao diện Máy tính (Hidden on Mobile) --}}
+            <div class="hidden md:flex items-center gap-8 overflow-x-auto scrollbar-hide py-3">
+                <a href="{{ route('home') }}" class="text-sm font-bold {{ request()->routeIs('home') && !isset($isCategory) ? 'text-indigo-600 border-b-2 border-indigo-600 pb-1' : 'text-gray-600 hover:text-indigo-600 pb-1' }} whitespace-nowrap">Mới nhất</a>
                 @foreach($categories as $cat)
-                    <a href="{{ route('categories.show', $cat->slug) }}" class="whitespace-nowrap transition {{ (isset($currentCategory) && $currentCategory->id === $cat->id) ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600' }}">{{ $cat->name }}</a>
+                    <a href="{{ route('categories.show', $cat->slug) }}" class="text-sm font-medium whitespace-nowrap transition pb-1 {{ (isset($currentCategory) && $currentCategory->id === $cat->id) ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-600 hover:text-indigo-600' }}">{{ $cat->name }}</a>
                 @endforeach
             </div>
+
+            {{-- Giao diện Điện thoại (Button Toggle) --}}
+            <div class="md:hidden py-2" x-data="{ openCat: false }">
+                <button @click="openCat = !openCat" class="flex items-center justify-between w-full text-sm font-bold text-gray-700 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                    <span>
+                        @if(isset($currentCategory)) 📂 {{ $currentCategory->name }}
+                        @else ⚡ Danh mục bài viết @endif
+                    </span>
+                    <svg class="w-4 h-4 transition-transform" :class="{'rotate-180': openCat}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+
+                {{-- Danh sách xổ xuống --}}
+                <div x-show="openCat" @click.away="openCat = false" class="absolute left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50 mt-2 p-4 grid grid-cols-2 gap-3" style="display: none;">
+                    <a href="{{ route('home') }}" class="block p-2 rounded text-center text-sm {{ request()->routeIs('home') && !isset($isCategory) ? 'bg-indigo-50 text-indigo-600 font-bold' : 'bg-gray-50 text-gray-600' }}">🔥 Mới nhất</a>
+                    @foreach($categories as $cat)
+                        <a href="{{ route('categories.show', $cat->slug) }}" class="block p-2 rounded text-center text-sm truncate {{ (isset($currentCategory) && $currentCategory->id === $cat->id) ? 'bg-indigo-50 text-indigo-600 font-bold' : 'bg-gray-50 text-gray-600' }}">
+                            {{ $cat->name }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+
         </div>
     </nav>
 
