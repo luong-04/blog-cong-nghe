@@ -53,8 +53,11 @@ Route::middleware(['auth', 'verified', 'role:admin,author'])->prefix('admin')->n
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::patch('users/{user}/approve', [UserController::class, 'approve'])->name('users.approve');
         
-        // [MỚI] Route hủy quyền tác giả
+        // Route hủy quyền tác giả
         Route::patch('users/{user}/revoke', [UserController::class, 'revoke'])->name('users.revoke');
+        //Quản lý bình luận
+        Route::get('comments', [App\Http\Controllers\Admin\CommentManagerController::class, 'index'])->name('comments.index');
+        Route::delete('comments/{comment}', [App\Http\Controllers\Admin\CommentManagerController::class, 'destroy'])->name('comments.destroy');
     });
 });
 

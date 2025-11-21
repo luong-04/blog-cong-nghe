@@ -58,6 +58,7 @@ class HomeController extends Controller
     public function show($slug)
     {
         $post = Post::where('slug', $slug)->where('status', 'published')->firstOrFail();
+        $post->increment('views');
         return view('posts.show', compact('post'));
     }
     

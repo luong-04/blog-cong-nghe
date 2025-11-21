@@ -9,7 +9,7 @@
                 </div>
 
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    {{-- 1. Link Trang chủ (Ai cũng thấy) --}}
+                    {{-- 1. Link Trang chủ --}}
                     <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
                         {{ __('Trang chủ') }}
                     </x-nav-link>
@@ -20,10 +20,15 @@
                             {{ __('Dashboard') }}
                         </x-nav-link>
                         
-                        {{-- CHỈ ADMIN MỚI THẤY QUẢN LÝ DANH MỤC --}}
+                        {{-- CHỈ ADMIN MỚI THẤY QUẢN LÝ DANH MỤC & BÌNH LUẬN --}}
                         @if(Auth::user()->role === 'admin')
                             <x-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
                                 {{ __('QL Danh mục') }}
+                            </x-nav-link>
+
+                            {{-- [MỚI BỔ SUNG] Link QL Bình luận cho Desktop --}}
+                            <x-nav-link :href="route('admin.comments.index')" :active="request()->routeIs('admin.comments.*')">
+                                {{ __('QL Bình luận') }}
                             </x-nav-link>
                         @endif
 
@@ -44,20 +49,16 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
-                            {{-- [MỚI] Hiển thị Avatar trên Desktop --}}
                             <div class="flex items-center gap-2">
                                 @if(Auth::user()->avatar)
                                     <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-8 h-8 rounded-full object-cover border border-gray-200">
                                 @else
-                                    {{-- Avatar mặc định nếu chưa có ảnh --}}
                                     <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
                                         {{ substr(Auth::user()->name, 0, 1) }}
                                     </div>
                                 @endif
-                                
                                 <div>{{ Auth::user()->name }}</div>
                             </div>
-
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -67,16 +68,12 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        {{-- Link vào trang Hồ sơ (Nơi có nút xin làm tác giả) --}}
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Hồ sơ cá nhân') }}
                         </x-dropdown-link>
-
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
+                            <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
                                 {{ __('Đăng xuất') }}
                             </x-dropdown-link>
                         </form>
@@ -85,15 +82,7 @@
             </div>
 
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
-                    <div class="flex items-center gap-2">
-                        {{-- Ảnh avatar --}}
-                        @if(Auth::user()->avatar)
-                            <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-8 h-8 rounded-full object-cover">
-                        @endif
-                        
-                        <div>{{ Auth::user()->name }}</div>
-                    </div>
+                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -114,10 +103,13 @@
                     {{ __('Dashboard') }}
                 </x-responsive-nav-link>
 
-                {{-- [SỬA] CHỈ ADMIN MỚI THẤY QUẢN LÝ DANH MỤC TRÊN MOBILE --}}
                 @if(Auth::user()->role === 'admin')
                     <x-responsive-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
                         {{ __('QL Danh mục') }}
+                    </x-responsive-nav-link>
+                    {{-- Link QL Bình luận cho Mobile --}}
+                    <x-responsive-nav-link :href="route('admin.comments.index')" :active="request()->routeIs('admin.comments.*')">
+                        {{ __('QL Bình luận') }}
                     </x-responsive-nav-link>
                 @endif
 
@@ -133,24 +125,28 @@
             @endif
         </div>
 
-        {{-- ... (Phần profile) ... --}}
-
         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+            <div class="px-4 flex items-center gap-3">
+                 @if(Auth::user()->avatar)
+                    <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                @else
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                        {{ substr(Auth::user()->name, 0, 1) }}
+                    </div>
+                @endif
+                <div>
+                    <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                </div>
             </div>
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Hồ sơ cá nhân') }}
                 </x-responsive-nav-link>
-
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
+                    <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
                         {{ __('Đăng xuất') }}
                     </x-responsive-nav-link>
                 </form>
