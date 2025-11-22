@@ -9,13 +9,12 @@ use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
-    // 1. Gửi bình luận (AJAX)
+    // 1. Gửi bình luận
     public function store(Request $request, $postId)
     {
         $post = Post::findOrFail($postId);
         $request->validate(['content' => 'required|string|max:1000']);
 
-        // Tự động duyệt nếu là Admin hoặc Chủ bài viết
         $status = 'pending';
         if (Auth::check()) {
             if (Auth::user()->role === 'admin' || Auth::id() === $post->user_id) {
@@ -34,7 +33,6 @@ class CommentController extends Controller
 
         $comment = Comment::create($data);
 
-        // [QUAN TRỌNG] Nếu là AJAX thì trả về HTML để chèn vào trang
         if ($request->ajax()) {
             $html = view('partials.comment_item', compact('comment'))->render();
             return response()->json([
@@ -47,20 +45,26 @@ class CommentController extends Controller
         return back();
     }
 
-    // 2. Cập nhật (AJAX)
+    // 2. Cập nhật (Sửa logic trả về content chuẩn)
     public function update(Request $request, Comment $comment)
     {
-        if (Auth::id() !== $comment->user_id) abort(403);
+        if (Auth::id() !== $comment->user_id) {
+            return response()->json(['status' => 'error', 'message' => 'Không có quyền'], 403);
+        }
         
-        $comment->update(['content' => $request->input('content')]);
+        $request->validate(['content' => 'required|string|max:1000']);
+        
+        // Cập nhật
+        $comment->content = $request->input('content');
+        $comment->save();
         
         return response()->json([
             'status' => 'success', 
-            'content' => $comment->content
+            'content' => $comment->content // Trả về nội dung mới để JS cập nhật
         ]);
     }
 
-    // 3. Xóa (AJAX)
+    // 3. Xóa
     public function destroy(Comment $comment)
     {
         $post = $comment->post;
@@ -70,19 +74,19 @@ class CommentController extends Controller
             Auth::id() === $comment->user_id
         );
 
-        if (!$canDelete) abort(403);
+        if (!$canDelete) return response()->json(['status' => 'error'], 403);
 
         $comment->delete();
         return response()->json(['status' => 'success']);
     }
 
-    // 4. Duyệt (AJAX)
+    // 4. Duyệt
     public function approve(Comment $comment)
     {
         $post = $comment->post;
         $canApprove = Auth::check() && (Auth::user()->role === 'admin' || Auth::id() === $post->user_id);
 
-        if (!$canApprove) abort(403);
+        if (!$canApprove) return response()->json(['status' => 'error'], 403);
 
         $comment->update(['status' => 'approved']);
         return response()->json(['status' => 'success']);

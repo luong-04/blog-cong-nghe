@@ -22,9 +22,12 @@
                     @if(($comment->status === 'pending') && (Auth::user()->role === 'admin' || Auth::id() === $comment->post->user_id))
                          <button onclick="approveComment({{ $comment->id }})" id="btn-approve-{{ $comment->id }}" class="text-green-600 hover:underline text-xs font-bold">✓ Duyệt</button>
                     @endif
+                    
                     @if(Auth::id() === $comment->user_id)
+                        {{-- Nút Sửa gọi toggleEdit --}}
                         <button onclick="toggleEdit({{ $comment->id }})" class="text-indigo-600 hover:underline text-xs font-bold">Sửa</button>
                     @endif
+                    
                     @if(Auth::user()->role === 'admin' || Auth::id() === $comment->post->user_id || Auth::id() === $comment->user_id)
                         <button onclick="deleteComment({{ $comment->id }})" class="text-red-500 hover:underline text-xs font-bold">Xóa</button>
                     @endif
@@ -32,16 +35,19 @@
             @endauth
         </div>
         
+        {{-- Nội dung hiển thị --}}
         <div id="comment-body-{{ $comment->id }}">
-            <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ $comment->content }}</p>
+            <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap comment-text">{{ $comment->content }}</p>
         </div>
 
+        {{-- Form Sửa --}}
         @if(Auth::id() === $comment->user_id)
             <form onsubmit="updateComment(event, {{ $comment->id }})" id="form-edit-{{ $comment->id }}" class="hidden mt-2">
-                <textarea class="w-full border border-gray-300 rounded-lg p-2 text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none" rows="2" required>{{ $comment->content }}</textarea>
+                <textarea class="w-full border border-gray-300 rounded-lg p-2 text-sm mb-2 focus:ring-2 focus:ring-indigo-500 outline-none resize-none" rows="3" required>{{ $comment->content }}</textarea>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="toggleEdit({{ $comment->id }})" class="text-xs text-gray-500 hover:text-gray-700">Hủy</button>
-                    <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-indigo-700">Lưu</button>
+                    {{-- Nút Hủy gọi toggleEdit để đóng và reset --}}
+                    <button type="button" onclick="toggleEdit({{ $comment->id }})" class="text-xs text-gray-500 hover:text-gray-700 bg-gray-100 px-3 py-1 rounded font-bold">Hủy</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-indigo-700">Lưu lại</button>
                 </div>
             </form>
         @endif

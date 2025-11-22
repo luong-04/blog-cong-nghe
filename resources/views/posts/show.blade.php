@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $post->title }} - TechBlog</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; font-size: 15px; }
@@ -146,7 +147,7 @@
 
             {{-- Bình Luận --}}
             <div class="mt-16 pt-10 border-t border-gray-100">
-                <h3 class="text-2xl font-bold text-gray-900 mb-6">Bình luận (<span id="comment-count">{{ $post->comments->count() }}</span>)</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-6">Bình luận (<span id="comment-count">{{ $post->comments->count() }}</span>)</h3>
                 
                 <form id="comment-form" action="{{ route('comments.store', $post->id) }}" class="mb-10 relative">
                     @csrf
@@ -200,11 +201,36 @@
             <span class="text-gray-900">Blog</span>
         </p>
     </footer>
-    {{-- JAVASCRIPT AJAX --}}
+    {{-- JAVASCRIPT: SLIDER & COMMENT --}}
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        // 1. Gửi bình luận
+        // Slider
+        let slideIndex = 0;
+        const slides = document.querySelectorAll('.ad-slide');
+        if (slides.length > 0) {
+            function showSlides() {
+                slides.forEach(slide => { slide.classList.remove('active'); slide.style.opacity = 0; });
+                slideIndex = (slideIndex + 1) % slides.length;
+                slides[slideIndex].classList.add('active');
+                slides[slideIndex].style.opacity = 1;
+            }
+            slides[0].classList.add('active'); slides[0].style.opacity = 1;
+            setInterval(showSlides, 4000);
+        }
+
+        // Gửi bình luận
+        // HÀM LẤY TOKEN AN TOÀN (Gọi trong mỗi function để tránh lỗi)
+        function getToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (!meta) {
+                alert('LỖI NGHIÊM TRỌNG: Không tìm thấy thẻ meta csrf-token trong <head>. Vui lòng kiểm tra lại code!');
+                return '';
+            }
+            return meta.getAttribute('content');
+        }
+
+        //  Gửi bình luận
         document.getElementById('comment-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const form = this;
@@ -214,7 +240,7 @@
 
             fetch(form.action, {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+                headers: { 'X-CSRF-TOKEN': getToken(), 'X-Requested-With': 'XMLHttpRequest' },
                 body: new FormData(form)
             })
             .then(res => res.json())
@@ -224,8 +250,6 @@
                     form.reset();
                     const noMsg = document.getElementById('no-comment-msg');
                     if(noMsg) noMsg.remove();
-                    
-                    // Tăng số lượng comment
                     let countSpan = document.getElementById('comment-count');
                     countSpan.innerText = parseInt(countSpan.innerText) + 1;
                 } else {
@@ -236,27 +260,90 @@
             .finally(() => { btn.disabled = false; btn.innerText = oldText; });
         });
 
-        // 2. Xóa bình luận
-        function deleteComment(id) {
-            if(!confirm('Xóa bình luận này?')) return;
-            fetch(`/comments/${id}`, {
-                method: 'DELETE',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
-            }).then(res => res.json()).then(data => {
+        {{-- 2. Sửa bình luận --}}
+        function toggleEdit(id) {
+            const form = document.getElementById(`form-edit-${id}`);
+            const body = document.getElementById(`comment-body-${id}`);
+            
+            // Reset lại nội dung ô sửa cho đúng với hiện tại
+            if (form.classList.contains('hidden')) {
+                const currentText = body.innerText.trim();
+                form.querySelector('textarea').value = currentText;
+                
+                // Reset nút lưu (đề phòng bị kẹt từ lần trước)
+                const btn = form.querySelector('button[type="submit"]');
+                btn.disabled = false;
+                btn.innerText = "Lưu lại";
+            }
+
+            form.classList.toggle('hidden');
+            body.classList.toggle('hidden');
+        }
+
+        function updateComment(e, id) {
+            e.preventDefault();
+            const form = e.target;
+            const content = form.querySelector('textarea').value;
+            const btn = form.querySelector('button[type="submit"]');
+            
+            btn.innerText = "Đang lưu...";
+            btn.disabled = true;
+
+            fetch(`{{ url('/comments') }}/${id}`, {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRF-TOKEN': getToken(), // Gọi hàm lấy token
+                    'X-Requested-With': 'XMLHttpRequest' 
+                },
+                body: JSON.stringify({ content: content })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Lỗi kết nối hoặc quyền hạn');
+                return res.json();
+            })
+            .then(data => {
                 if(data.status === 'success') {
-                    document.getElementById(`comment-${id}`).remove();
-                     // Giảm số lượng comment
-                    let countSpan = document.getElementById('comment-count');
-                    countSpan.innerText = parseInt(countSpan.innerText) - 1;
+                    document.getElementById(`comment-body-${id}`).innerHTML = `<p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">${data.content}</p>`;
+                    toggleEdit(id); // Đóng form
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            })
+            .catch(err => {
+                alert('Có lỗi xảy ra: ' + err.message);
+            })
+            .finally(() => {
+                // Luôn mở khóa nút dù thành công hay thất bại
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Lưu lại";
                 }
             });
         }
 
-        // 3. Duyệt bình luận
+        // 3. Xóa bình luận
+        function deleteComment(id) {
+            if(!confirm('Xóa bình luận này?')) return;
+            fetch(`{{ url('/comments') }}/${id}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': getToken(), 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(res => res.json()).then(data => {
+                if(data.status === 'success') {
+                    document.getElementById(`comment-${id}`).remove();
+                    let countSpan = document.getElementById('comment-count');
+                    countSpan.innerText = parseInt(countSpan.innerText) - 1;
+                } else {
+                    alert('Lỗi: ' + (data.message || 'Không thể xóa'));
+                }
+            });
+        }
+
+        // 4. Duyệt bình luận
         function approveComment(id) {
-            fetch(`/comments/${id}/approve`, {
+            fetch(`{{ url('/comments') }}/${id}/approve`, {
                 method: 'PATCH',
-                headers: { 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+                headers: { 'X-CSRF-TOKEN': getToken(), 'X-Requested-With': 'XMLHttpRequest' }
             }).then(res => res.json()).then(data => {
                 if(data.status === 'success') {
                     const badge = document.getElementById(`badge-pending-${id}`);
@@ -266,29 +353,7 @@
                 }
             });
         }
-
-        // 4. Sửa bình luận
-        function toggleEdit(id) {
-            document.getElementById(`form-edit-${id}`).classList.toggle('hidden');
-            document.getElementById(`comment-body-${id}`).classList.toggle('hidden');
-        }
-
-        function updateComment(e, id) {
-            e.preventDefault();
-            const form = e.target;
-            const content = form.querySelector('textarea').value;
-
-            fetch(`/comments/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({ content: content })
-            }).then(res => res.json()).then(data => {
-                if(data.status === 'success') {
-                    document.getElementById(`comment-body-${id}`).innerHTML = `<p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">${data.content}</p>`;
-                    toggleEdit(id);
-                }
-            });
-        }
+    </script>
     </script>
 </body>
 </html>
