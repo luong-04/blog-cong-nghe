@@ -49,9 +49,7 @@ Route::middleware(['auth', 'verified', 'role:admin,author'])->prefix('admin')->n
     // Nhóm chỉ dành cho Admin
     Route::middleware('role:admin')->group(function () {
         Route::resource('categories', CategoryController::class);
-        Route::get('users', [UserController::class, 'index'])->name('users.index');
-        Route::patch('users/{user}/approve', [UserController::class, 'approve'])->name('users.approve');
-        Route::patch('users/{user}/revoke', [UserController::class, 'revoke'])->name('users.revoke');
+        Route::resource('users', UserController::class)->except(['create', 'store']);
         
         // Quản lý toàn bộ bình luận
         Route::get('comments', [CommentManagerController::class, 'index'])->name('comments.index');

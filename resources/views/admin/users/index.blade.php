@@ -26,41 +26,41 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody>
                                 @foreach($users as $user)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap font-bold">{{ $user->name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $user->email }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($user->role == 'pending')
-                                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">Đang chờ duyệt</span>
+                                <tr class="border-t hover:bg-gray-50">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            @if($user->avatar)
+                                                <img class="h-10 w-10 rounded-full object-cover mr-3" src="{{ asset('storage/' . $user->avatar) }}">
+                                            @else
+                                                <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3">{{ substr($user->name, 0, 1) }}</div>
+                                            @endif
+                                            <div class="font-medium text-gray-900">{{ $user->name }}</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-500">{{ $user->email }}</td>
+                                    <td class="px-6 py-4">
+                                        @if($user->role == 'admin')
+                                            <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">Admin</span>
                                         @elseif($user->role == 'author')
                                             <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold">Tác giả</span>
-                                        @elseif($user->role == 'user')
+                                        @elseif($user->role == 'pending')
+                                            <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">Chờ duyệt</span>
+                                        @else
                                             <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">Thành viên</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        {{-- Nút Duyệt (Cho pending/user) --}}
-                                        @if($user->role == 'pending' || $user->role == 'user')
-                                            <form action="{{ route('admin.users.approve', $user->id) }}" method="POST" class="inline-block">
-                                                @csrf @method('PATCH')
-                                                <button type="submit" class="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs font-bold shadow transition">
-                                                    ✅ Duyệt Tác giả
-                                                </button>
-                                            </form>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        {{-- Nút Sửa --}}
+                                        <a href="{{ route('admin.users.edit', $user->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3 font-bold">Sửa / Cấp quyền</a>
                                         
-                                        {{-- Nút Hủy Quyền (Cho Author) --}}
-                                        @elseif($user->role == 'author')
-                                            <span class="text-green-600 text-xs font-bold mr-2">✓ Đang là Tác giả</span>
-                                            
-                                            <form action="{{ route('admin.users.revoke', $user->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Bạn chắc chắn muốn tước quyền tác giả của người này?');">
-                                                @csrf @method('PATCH')
-                                                <button type="submit" class="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs font-bold shadow transition">
-                                                    🚫 Hủy quyền
-                                                </button>
-                                            </form>
-                                        @endif
+                                        {{-- Nút Xóa --}}
+                                        <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Bạn chắc chắn muốn xóa tài khoản này? Hành động không thể hoàn tác!');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-900 font-bold">Xóa</button>
+                                        </form>
                                     </td>
                                 </tr>
                                 @endforeach
