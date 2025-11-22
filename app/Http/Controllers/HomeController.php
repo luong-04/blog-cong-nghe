@@ -44,19 +44,34 @@ class HomeController extends Controller
         $post = Post::where('slug', $slug)->where('status', 'published')->firstOrFail();
         $post->increment('views');
 
-        // 1. Lấy Danh mục cho Menu
-        $categories = Category::withCount('posts')->get();
-        
-        // 2. Lấy Quảng cáo cho Banner
-        $ads = Ad::where('is_active', true)->latest()->get();
+        // --- LOGIC LẤY BÌNH LUẬN MỚI ---
+        $commentsQuery = $post->comments();
 
-        // 3. Lấy bài viết liên quan
+        // Nếu không phải Admin và không phải Tác giả bài viết -> Chỉ lấy bài đã duyệt
+        // (Hoặc lấy bài của chính mình dù chưa duyệt để mình thấy)
+        if (!auth()->check() || (auth()->user()->role !== 'admin' && auth()->id() !== $post->user_id)) {
+            $commentsQuery->where(function($q) {
+                $q->where('status', 'approved');
+                // Nếu đang đăng nhập, cho phép xem thêm comment của chính mình (dù đang pending)
+                if (auth()->check()) {
+                    $q->orWhere('user_id', auth()->id());
+                }
+            });
+        }
+        
+        $comments = $commentsQuery->get();
+        // --------------------------------
+
+        // Lấy dữ liệu khác
+        $categories = Category::withCount('posts')->get();
+        $ads = Ad::where('is_active', true)->latest()->get();
         $relatedPosts = Post::where('category_id', $post->category_id)
             ->where('id', '!=', $post->id)
             ->where('status', 'published')
             ->take(3)->get();
 
-        return view('posts.show', compact('post', 'categories', 'ads', 'relatedPosts'));
+        // Truyền thêm biến $comments sang View
+        return view('posts.show', compact('post', 'categories', 'ads', 'relatedPosts', 'comments'));
     }
     
     public function category($slug)

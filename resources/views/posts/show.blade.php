@@ -161,19 +161,74 @@
                     </div>
                 </form>
 
-                <div class="space-y-6">
-                    @foreach($post->comments as $comment)
-                        <div class="flex gap-4 border-b border-gray-100 pb-4 last:border-0">
-                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 shrink-0">{{ substr($comment->author_name, 0, 1) }}</div>
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <h4 class="font-bold text-gray-900 text-sm">{{ $comment->author_name }}</h4>
-                                    <span class="text-xs text-gray-400">&bull; {{ $comment->created_at->diffForHumans() }}</span>
+                <div class="space-y-6" id="comments-list">
+                    @foreach($comments as $comment)
+                        <div class="flex gap-4 border-b border-gray-100 pb-4 last:border-0 group">
+                            <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 shrink-0">
+                                {{ substr($comment->author_name, 0, 1) }}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-bold text-gray-900 text-sm">{{ $comment->author_name }}</h4>
+                                        <span class="text-xs text-gray-400">&bull; {{ $comment->created_at->diffForHumans() }}</span>
+                                        
+                                        {{-- Badge trạng thái (Chỉ hiện cho chủ bài viết hoặc chủ comment) --}}
+                                        @if($comment->status === 'pending')
+                                            <span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Chờ duyệt</span>
+                                        @endif
+                                    </div>
+
+                                    {{-- CÁC NÚT HÀNH ĐỘNG (Sửa/Xóa/Duyệt) --}}
+                                    @auth
+                                        <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition duration-200">
+                                            {{-- 1. Nút Duyệt (Chỉ hiện với Tác giả bài viết/Admin khi status là pending) --}}
+                                            @if($comment->status === 'pending' && (Auth::user()->role === 'admin' || Auth::id() === $post->user_id))
+                                                <form action="{{ route('comments.approve', $comment->id) }}" method="POST">
+                                                    @csrf @method('PATCH')
+                                                    <button class="text-green-600 hover:text-green-800 text-xs font-bold underline">Duyệt</button>
+                                                </form>
+                                            @endif
+
+                                            {{-- 2. Nút Sửa (Chỉ hiện với chủ comment) --}}
+                                            @if(Auth::id() === $comment->user_id)
+                                                <button onclick="document.getElementById('edit-comment-{{ $comment->id }}').classList.toggle('hidden')" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold">Sửa</button>
+                                            @endif
+
+                                            {{-- 3. Nút Xóa (Chủ comment / Tác giả bài viết / Admin) --}}
+                                            @if(Auth::user()->role === 'admin' || Auth::id() === $post->user_id || Auth::id() === $comment->user_id)
+                                                <form action="{{ route('comments.destroy', $comment->id) }}" method="POST" onsubmit="return confirm('Xóa bình luận này?')">
+                                                    @csrf @method('DELETE')
+                                                    <button class="text-red-500 hover:text-red-700 text-xs font-bold">Xóa</button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    @endauth
                                 </div>
-                                <p class="text-gray-700 text-sm leading-relaxed">{{ $comment->content }}</p>
+
+                                {{-- Nội dung bình luận --}}
+                                <p class="text-gray-700 text-sm leading-relaxed" id="comment-content-{{ $comment->id }}">
+                                    {{ $comment->content }}
+                                </p>
+
+                                {{-- Form Sửa Bình Luận (Ẩn mặc định) --}}
+                                @if(Auth::id() === $comment->user_id)
+                                    <form id="comment-form" action="{{ route('comments.update', $comment->id) }}" method="POST" id="edit-comment-{{ $comment->id }}" class="hidden mt-2">
+                                        @csrf @method('PATCH')
+                                        <textarea name="content" rows="2" class="w-full border border-gray-300 rounded-lg p-2 text-sm mb-2">{{ $comment->content }}</textarea>
+                                        <div class="flex justify-end gap-2">
+                                            <button type="button" onclick="document.getElementById('edit-comment-{{ $comment->id }}').classList.add('hidden')" class="text-xs text-gray-500">Hủy</button>
+                                            <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-bold">Lưu</button>
+                                        </div>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     @endforeach
+
+                    @if($comments->isEmpty())
+                        <div class="text-center text-gray-500 text-sm py-4">Chưa có bình luận nào. Hãy là người đầu tiên!</div>
+                    @endif
                 </div>
             </div>
         </article>
@@ -205,7 +260,7 @@
             <span class="text-gray-900">Blog</span>
         </p>
     </footer>
-
+    {{-- script quảng cáo --}}
     <script>
         let slideIndex = 0;
         const slides = document.querySelectorAll('.ad-slide');
@@ -219,5 +274,76 @@
         function nextSlide() { slideIndex++; showSlides(); }
         setInterval(nextSlide, 4000); showSlides();
     </script>
+    <script>
+        // Xử lý Gửi Bình Luận không cần reload
+        document.getElementById('comment-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // 1. Chặn reload trang
+
+            let form = this;
+            let formData = new FormData(form);
+            let submitBtn = form.querySelector('button[type="submit"]');
+            let originalBtnText = submitBtn.innerHTML;
+
+            // Hiệu ứng đang gửi
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Đang gửi...';
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest', // Báo cho Laravel biết đây là AJAX
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 2. Chèn bình luận mới lên đầu danh sách
+                    const list = document.getElementById('comments-list');
+                    list.insertAdjacentHTML('afterbegin', data.html);
+                    
+                    // 3. Xóa nội dung trong ô nhập
+                    form.querySelector('textarea').value = '';
+                    
+                    // Hiệu ứng báo thành công (Tùy chọn)
+                    // alert(data.message); 
+                }
+            })
+            .catch(error => console.error('Error:', error))
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // Hàm xóa bình luận bằng AJAX (Nâng cao)
+        function deleteComment(id) {
+            if(!confirm('Xóa bình luận này?')) return;
+            
+            fetch(`/comments/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(res => {
+                if(res.ok) {
+                    // Xóa element khỏi giao diện
+                    document.getElementById(`comment-${id}`).remove();
+                }
+            });
+        }
+    </script>
+
+    <style>
+        /* Hiệu ứng hiện bình luận mượt mà */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-down { animation: fadeInDown 0.5s ease-out; }
+    </style>
 </body>
 </html>

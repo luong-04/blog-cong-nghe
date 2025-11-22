@@ -45,6 +45,6 @@ class Post extends Model
 
     public function comments()
     {
-        return $this->hasMany(Comment::class)->where('status', 'approved')->latest();
+        return $this->hasMany(Comment::class)->latest();
     }
 }
