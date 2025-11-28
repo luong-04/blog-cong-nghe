@@ -102,17 +102,17 @@
         .ck-content h2 {
             font-size: 1.8rem;
             font-weight: 700;
-            color: #BE1E2D;
+            color: #000000;
             margin-top: 2.5rem;
             margin-bottom: 1rem;
             border-bottom: 2px solid #f1f1f1;
         }
         .ck-content h3 {
-            font-size: 1.4rem; font-weight: 600; color: #444; margin-top: 2rem;
+            font-size: 1.4rem; font-weight: 600; color: #000000; margin-top: 2rem;
         }
         .ck-content ul {
             list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.5rem;
-            background-color: #f9fafb; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #BE1E2D;
+            background-color: #f9fafb; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #000000;
         }
         .ck-content img {
             max-width: 100%; border-radius: 8px; margin: 2rem auto; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);

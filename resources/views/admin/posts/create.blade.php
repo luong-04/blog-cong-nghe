@@ -74,9 +74,9 @@
     <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
     <style>
         .ck-editor__editable_inline { min-height: 500px; padding: 2rem !important; }
-        .ck-content { font-family: 'Segoe UI', sans-serif; line-height: 1.8; color: #333; }
-        .ck-content h2 { font-size: 1.8rem; font-weight: 700; color: #BE1E2D; margin-top: 2rem; border-bottom: 2px solid #eee; }
-        .ck-content ul { background: #f9fafb; padding: 1.5rem 2rem; border-left: 4px solid #BE1E2D; list-style: disc; }
+        .ck-content { font-family: 'Segoe UI', sans-serif; line-height: 1.8; color: #000000; }
+        .ck-content h2 { font-size: 1.8rem; font-weight: 700; color: #000000; margin-top: 2rem; border-bottom: 2px solid #eee; }
+        .ck-content ul { background: #f9fafb; padding: 1.5rem 2rem; border-left: 4px solid #000000; list-style: disc; }
         .ck-content img { margin: 2rem auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: block; }
     </style>
 
