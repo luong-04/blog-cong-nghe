@@ -151,7 +151,7 @@ class PostController extends Controller
         }
     }
 
-    // ... (Các hàm edit, update, destroy GIỮ NGUYÊN như cũ) ...
+    // ... (Các hàm edit, update, destroy) ...
     public function edit(Post $post)
     {
         if (auth()->user()->role !== 'admin' && $post->user_id !== auth()->id()) abort(403);
