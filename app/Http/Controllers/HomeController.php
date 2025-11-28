@@ -33,7 +33,7 @@ class HomeController extends Controller
         $recentPosts = Post::with(['user', 'category'])
             ->where('status', 'published')
             ->whereNotIn('id', $excludeIds)
-            ->latest()->paginate(9);
+            ->latest()->paginate(8);
 
         return view('home', compact('categories', 'heroPost', 'featuredPosts', 'recentPosts', 'ads'));
     }

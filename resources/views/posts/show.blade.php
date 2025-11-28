@@ -33,7 +33,7 @@
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
             <a href="/" class="group flex items-center gap-1.5 text-xl md:text-2xl font-extrabold tracking-tight hover:opacity-90 transition shrink-0">
-                <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg shadow-sm group-hover:bg-indigo-700 transition">Tech</span>
+                <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg shadow-sm group-hover:bg-indigo-700 transition">Healthy</span>
                 <span class="text-gray-900">Blog</span>
             </a>
 
@@ -197,7 +197,7 @@
 
     <footer class="bg-white border-t border-gray-200 py-8 text-center text-gray-500 text-xs">
         <p>© {{ date('Y') }} 
-            <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg shadow-sm group-hover:bg-indigo-700 transition">Tech</span>
+            <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-lg shadow-sm group-hover:bg-indigo-700 transition">Healthy</span>
             <span class="text-gray-900">Blog</span>
         </p>
     </footer>
