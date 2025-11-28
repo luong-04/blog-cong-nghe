@@ -25,11 +25,6 @@
                             <x-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
                                 {{ __('QL Danh mục') }}
                             </x-nav-link>
-
-                            {{-- Link QL Bình luận cho Desktop --}}
-                            <x-nav-link :href="route('admin.comments.index')" :active="request()->routeIs('admin.comments.*')">
-                                {{ __('QL Bình luận') }}
-                            </x-nav-link>
                             {{-- -Link QL quảng cáo --}}
                             <x-nav-link :href="route('admin.ads.index')" :active="request()->routeIs('admin.ads.*')">
                                 {{ __('QL Quảng cáo') }}
@@ -39,6 +34,9 @@
 
                         <x-nav-link :href="route('admin.posts.index')" :active="request()->routeIs('admin.posts.*')">
                             {{ __('QL Bài viết') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('author.comments.index')" :active="request()->routeIs('author.comments.index')">
+                            {{ __('QL Bình luận') }}
                         </x-nav-link>
                         
                         @if(Auth::user()->role === 'admin')

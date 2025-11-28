@@ -9,127 +9,121 @@ use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
-    /**
-     * Lưu bình luận mới
-     */
+    // --- 1. LƯU BÌNH LUẬN (SỬA LOGIC DUYỆT) ---
     public function store(Request $request, Post $post)
     {
-        $rules = [
-            'content' => 'required|string|max:1000',
-        ];
-
-        // Nếu chưa đăng nhập thì validate thêm tên và email
+        $rules = ['content' => 'required|string|max:1000'];
         if (!Auth::check()) {
             $rules['author_name'] = 'required|string|max:255';
             $rules['author_email'] = 'required|email|max:255';
         }
-
         $request->validate($rules);
 
-        // Chuẩn bị dữ liệu
-        // Dùng input() an toàn hơn truy cập trực tiếp
-        $data = [
-            'content' => $request->input('content'), 
-            'post_id' => $post->id,
-        ];
+        // Mặc định là chờ duyệt (cho cả khách và thành viên thường)
+        $status = 'pending';
+        $userId = null;
+        $authorName = $request->input('author_name');
+        $authorEmail = $request->input('author_email');
 
         if (Auth::check()) {
             $user = Auth::user();
-            $data['user_id'] = Auth::id(); // Dùng Auth::id() để tránh lỗi IDE
-            $data['author_name'] = $user->name;
-            $data['author_email'] = $user->email;
-            $data['status'] = 'approved'; 
-        } else {
-            $data['author_name'] = $request->input('author_name');
-            $data['author_email'] = $request->input('author_email');
-            $data['status'] = 'pending'; 
+            $userId = Auth::id();
+            $authorName = $user->name;
+            $authorEmail = $user->email;
+
+            // Nếu là Admin hoặc Chính chủ bài viết comment vào bài mình -> Duyệt luôn
+            if ($user->role === 'admin' || $post->user_id === $userId) {
+                $status = 'approved';
+            }
         }
 
-        $comment = Comment::create($data);
+        $comment = Comment::create([
+            'post_id' => $post->id,
+            'user_id' => $userId,
+            'author_name' => $authorName,
+            'author_email' => $authorEmail,
+            'content' => $request->input('content'),
+            'status' => $status
+        ]);
 
         $html = view('partials.comment_item', ['comment' => $comment])->render();
 
         return response()->json([
             'status' => 'success',
             'html' => $html,
-            'message' => 'Gửi bình luận thành công!'
+            'comment_status' => $status,
+            'message' => ($status === 'pending') ? 'Bình luận đang chờ duyệt.' : 'Đã gửi bình luận!'
         ]);
     }
 
-    /**
-     * Cập nhật bình luận
-     */
+    // --- 2. DASHBOARD QUẢN LÝ CHO AUTHOR ---
+    public function authorIndex()
+    {
+        $userId = Auth::id();
+        // Lấy comment thuộc các bài viết của Author này
+        $comments = Comment::whereHas('post', function($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })
+        ->with(['post', 'user'])
+        ->latest()
+        ->paginate(15);
+
+        // Trả về view bạn vừa tạo ở Bước 1
+        return view('author.comments.index', compact('comments'));
+    }
+
+    // --- 3. DUYỆT/XÓA HÀNG LOẠT (AUTHOR) ---
+    public function bulkAction(Request $request)
+    {
+        $action = $request->input('action');
+        $commentIds = $request->input('comment_ids', []);
+
+        if (empty($commentIds)) return back()->with('error', 'Chưa chọn bình luận nào.');
+
+        // Chỉ tác động vào comment thuộc bài viết của Author này (Bảo mật)
+        $validComments = Comment::whereIn('id', $commentIds)
+            ->whereHas('post', function($q) {
+                $q->where('user_id', Auth::id());
+            });
+
+        if ($action === 'approve') {
+            $validComments->update(['status' => 'approved']);
+            return back()->with('success', 'Đã duyệt các mục đã chọn.');
+        } elseif ($action === 'delete') {
+            $validComments->delete();
+            return back()->with('success', 'Đã xóa các mục đã chọn.');
+        }
+
+        return back();
+    }
+
+    // --- CÁC HÀM AJAX CŨ (GIỮ NGUYÊN) ---
     public function update(Request $request, Comment $comment)
     {
-        // Check quyền: Auth::id()
-        if ($comment->user_id !== Auth::id()) {
-            return response()->json(['status' => 'error', 'message' => 'Bạn không có quyền sửa.'], 403);
-        }
-
-        $request->validate([
-            'content' => 'required|string|max:1000',
-        ]);
-
-        // SỬA LỖI Ở ĐÂY: Dùng input('content') thay vì $request->content
-        $comment->update([
-            'content' => $request->input('content')
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'content' => $comment->content,
-            'message' => 'Cập nhật thành công!'
-        ]);
+        if ($comment->user_id !== Auth::id()) abort(403);
+        $request->validate(['content' => 'required|string|max:1000']);
+        $comment->update(['content' => $request->input('content')]);
+        return response()->json(['status' => 'success', 'content' => $comment->content]);
     }
 
-    /**
-     * Xóa bình luận
-     */
     public function destroy(Comment $comment)
     {
-        $currentUserId = Auth::id();
         $user = Auth::user();
-
-        // 1. Admin
-        if ($user && $user->role === 'admin') {
+        // Admin, chủ comment, hoặc tác giả bài viết được xóa
+        if ($user->role === 'admin' || $comment->user_id === $user->id || $comment->post->user_id === $user->id) {
             $comment->delete();
-            return response()->json(['status' => 'success', 'message' => 'Đã xóa bình luận.']);
+            return response()->json(['status' => 'success']);
         }
-
-        // 2. Chính chủ
-        if ($comment->user_id === $currentUserId) {
-            $comment->delete();
-            return response()->json(['status' => 'success', 'message' => 'Đã xóa bình luận.']);
-        }
-
-        // 3. Tác giả bài viết
-        if ($comment->post && $comment->post->user_id === $currentUserId) {
-            $comment->delete();
-            return response()->json(['status' => 'success', 'message' => 'Đã xóa bình luận.']);
-        }
-
-        return response()->json(['status' => 'error', 'message' => 'Bạn không có quyền xóa.'], 403);
+        abort(403);
     }
 
-    /**
-     * Duyệt bình luận
-     */
     public function approve(Comment $comment)
     {
-        $currentUserId = Auth::id();
         $user = Auth::user();
-
-        $isPostAuthor = $comment->post && $comment->post->user_id === $currentUserId;
-
-        if (($user && $user->role !== 'admin') && !$isPostAuthor) {
-            return response()->json(['status' => 'error', 'message' => 'Không có quyền duyệt.'], 403);
+        if ($user->role === 'admin' || $comment->post->user_id === $user->id) {
+            $comment->update(['status' => 'approved']);
+            return response()->json(['status' => 'success']);
         }
-
-        $comment->update(['status' => 'approved']);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Đã duyệt bình luận.'
-        ]);
+        abort(403);
     }
 }

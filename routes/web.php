@@ -18,13 +18,17 @@ Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name
 
 // --- AUTH ROUTES (Phải đăng nhập mới dùng được) ---
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Route cho Author quản lý comment (Dashboard riêng)
+    Route::get('/my-posts/comments', [CommentController::class, 'authorIndex'])->name('author.comments.index');
+    Route::post('/my-posts/comments/bulk', [CommentController::class, 'bulkAction'])->name('author.comments.bulk');
+    
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/request-author', [ProfileController::class, 'requestAuthor'])->name('profile.request-author');
 
-    // [QUAN TRỌNG] Các route xử lý BÌNH LUẬN (Sửa, Xóa, Duyệt)
+    // [QUAN TRỌNG] Các route xử lý BÌNH LUẬN (Sửa, Xóa, Duyệt - AJAX)
     Route::patch('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     Route::patch('/comments/{comment}/approve', [CommentController::class, 'approve'])->name('comments.approve');
@@ -53,6 +57,7 @@ Route::middleware(['auth', 'verified', 'role:admin,author'])->prefix('admin')->n
         
         // Quản lý toàn bộ bình luận
         Route::get('comments', [CommentManagerController::class, 'index'])->name('comments.index');
+        Route::post('comments/bulk', [CommentManagerController::class, 'bulkAction'])->name('comments.bulk');
         Route::delete('comments/{comment}', [CommentManagerController::class, 'destroy'])->name('comments.destroy');
         
         // Quảng cáo
